@@ -155,23 +155,20 @@ final class MLXProvider: ObservableObject {
     
     private func formatPrompt(messages: [Message], tokenizer: Tokenizer) -> String {
         // Simple chat format - adjust based on model
-        var prompt = ""
-        
-        for message in messages {
+        let lines = messages.map { message -> String in
             switch message.role {
             case "system":
-                prompt += "System: \(message.content)\n"
+                return "System: \(message.content)\n"
             case "user":
-                prompt += "User: \(message.content)\n"
+                return "User: \(message.content)\n"
             case "assistant":
-                prompt += "Assistant: \(message.content)\n"
+                return "Assistant: \(message.content)\n"
             default:
-                prompt += "\(message.content)\n"
+                return "\(message.content)\n"
             }
         }
         
-        prompt += "Assistant:"
-        return prompt
+        return lines.joined() + "Assistant:"
     }
     
     private func streamGenerate(
