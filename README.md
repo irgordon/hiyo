@@ -76,26 +76,21 @@ swift build -c release
 
 Hiyo is built on a modern, secure architecture:
 
-```
-┌─────────────────────────────────────────┐
-│           Hiyo (SwiftUI)                │
-│  ┌─────────┐ ┌─────────┐ ┌──────────┐   │
-│  │  Chat   │ │ Sidebar │ │ Settings │   │
-│  │   UI    │ │   UI    │ │    UI    │   │
-│  └────┬────┘ └───--─┬──┘ └───-─┬────┘   │
-│       └─────────────┬──────────┘        │
-│                     ▼                   │
-│           HiyoStore (SwiftData)         │
-│                     │                   │
-│                     ▼                   │
-│           MLXProvider (MLX Swift)       │
-│                     │                   │
-│                     ▼                   │
-│           Apple MLX Framework           │
-│                     │                   │
-│                     ▼                   │
-│           Apple Silicon GPU             │
-└─────────────────────────────────────────┘
+```mermaid
+graph TD
+  subgraph Hiyo (SwiftUI)
+    ChatUI[Chat UI]
+    SidebarUI[Sidebar UI]
+    SettingsUI[Settings UI]
+    ChatUI --> HiyoStore
+    SidebarUI --> HiyoStore
+    SettingsUI --> HiyoStore
+  end
+
+  HiyoStore[HiyoStore (SwiftData)] --> MLXProvider
+  MLXProvider[MLXProvider (MLX Swift)] --> MLXFramework
+  MLXFramework[Apple MLX Framework] --> AppleGPU
+  AppleGPU[Apple Silicon GPU]
 ```
 
 ---
