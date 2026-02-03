@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Bundle Information -->
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    
+    <key>CFBundleExecutable</key>
+    <string>Hiyo</string>
+    
+    <key>CFBundleIdentifier</key>
+    <string>ai.hiyo.mac</string>
+    
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    
+    <key>CFBundleName</key>
+    <string>Hiyo</string>
+    
+    <key>CFBundleDisplayName</key>
+    <string>Hiyo</string>
+    
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+    
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    
+    <!-- Minimum System Version -->
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+    
+    <!-- Application Category -->
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.productivity</string>
+    
+    <!-- Human Readable Copyright -->
+    <key>NSHumanReadableCopyright</key>
+    <string>© 2024 Hiyo. Local Intelligence Powered by You.</string>
+    
+    <!-- Principal Class -->
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+    
+    <!-- Main Storyboard (not used in SwiftUI but required) -->
+    <key>NSMainStoryboardFile</key>
+    <string></string>
+    
+    <!-- SwiftUI App Scene -->
+    <key>UIApplicationSceneManifest</key>
+    <dict>
+        <key>UIApplicationSupportsMultipleScenes</key>
+        <false/>
+    </dict>
+    
+    <!-- Document Types -->
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>Hiyo Conversation</string>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>LSHandlerRank</key>
+            <string>Owner</string>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>hiyo</string>
+            </array>
+            <key>CFBundleTypeIconFile</key>
+            <string>DocumentIcon</string>
+        </dict>
+    </array>
+    
+    <!-- Exported Type Identifiers -->
+    <key>UTExportedTypeDeclarations</key>
+    <array>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>ai.hiyo.mac.conversation</string>
+            <key>UTTypeDescription</key>
+            <string>Hiyo Conversation</string>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>public.data</string>
+            </array>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array>
+                    <string>hiyo</string>
+                </array>
+            </dict>
+        </dict>
+    </array>
+    
+    <!-- Security Configuration -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <!-- Disable arbitrary loads - we don't use network -->
+        <key>NSAllowsArbitraryLoads</key>
+        <false/>
+        <!-- Allow localhost only for potential future use -->
+        <key>NSAllowsLocalNetworking</key>
+        <true/>
+        <key>NSExceptionDomains</key>
+        <dict/>
+    </dict>
+    
+    <!-- Privacy Descriptions (not used but good practice) -->
+    <key>NSPrivacyAccessedAPICategoryDiskSpace</key>
+    <string>Hiyo checks available disk space to prevent filling your drive with AI models.</string>
+    
+    <key>NSPrivacyAccessedAPICategoryFileTimestamp</key>
+    <string>Hiyo uses file timestamps to manage cached models efficiently.</string>
+    
+    <!-- GPU and Performance -->
+    <key>MetalCaptureEnabled</key>
+    <false/>
+    
+    <!-- Disable unnecessary services -->
+    <key>UIBackgroundModes</key>
+    <array/>
+    
+    <!-- High Resolution Capable -->
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSRequiresAquaSystemAppearance</key>
+    <false/>
+    
+    <!-- Supports Automatic Graphics Switching -->
+    <key>NSSupportsAutomaticGraphicsSwitching</key>
+    <true/>
+    
+    <!-- Disable Sudden Termination (prevent data loss during generation) -->
+    <key>NSSupportsSuddenTermination</key>
+    <false/>
+    
+    <!-- App Nap -->
+    <key>NSAppSleepDisabled</key>
+    <true/>
+    
+    <!-- Encryption Export Compliance -->
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
+    <key>ITSEncryptionExportComplianceCode</key>
+    <string></string>
+</dict>
+</plist>
