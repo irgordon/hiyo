@@ -428,9 +428,5 @@ Include:
 ---
 
 **Last updated**: February 1, 2026
-**Security contact**: security@hiyo.ai
+**Security contact**: security@hiyoapp.dev
 ```
-
----
-
-This SECURITY.md provides comprehensive documentation of Hiyo's security architecture for developers, security researchers, and users who want to understand how their data is protected.
