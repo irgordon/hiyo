@@ -228,8 +228,10 @@ final class HiyoStore: ObservableObject {
             currentChat = nil
             
             // Clear caches
-            try? SecureMLX.clearAllCaches()
-            SecurityLogger.log(.dataCleared, details: "All data cleared")
+            Task.detached {
+                try? await SecureMLX.clearAllCaches()
+                SecurityLogger.log(.dataCleared, details: "All data cleared")
+            }
         } catch {
             self.error = error
         }

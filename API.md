@@ -448,7 +448,7 @@ enum SecureMLX {
     static func validateModelID(_ id: String) throws -> String
     static func secureCacheDirectory() throws -> URL
     static func validateModelWeights(at url: URL) throws
-    static func clearAllCaches() throws
+    static func clearAllCaches() async throws
     static func configureSafeLimits()
     static func verifyMLXConfiguration() -> Bool
 }

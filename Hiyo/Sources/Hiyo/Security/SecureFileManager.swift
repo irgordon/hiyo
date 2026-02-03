@@ -36,7 +36,7 @@ enum SecureFileManager {
     }
     
     /// Secure deletion with overwrite
-    static func secureDelete(at url: URL) throws {
+    static func secureDelete(at url: URL) async throws {
         guard FileManager.default.fileExists(atPath: url.path) else { return }
         
         // Get file size
@@ -49,19 +49,21 @@ enum SecureFileManager {
         }
         
         // Overwrite with random data three times
-        let passes = [0x00, 0xFF, Int.random(in: 0...255)]
-        for pass in passes {
-            var data = Data(repeating: UInt8(pass), count: Int(size))
-            // Add some randomness
-            for i in 0..<min(1024, data.count) {
-                data[i] = UInt8.random(in: 0...255)
+        try await Task.detached(priority: .utility) {
+            let passes = [0x00, 0xFF, Int.random(in: 0...255)]
+            for pass in passes {
+                var data = Data(repeating: UInt8(pass), count: Int(size))
+                // Add some randomness
+                for i in 0..<min(1024, data.count) {
+                    data[i] = UInt8.random(in: 0...255)
+                }
+                try data.write(to: url)
+                sync()
             }
-            try data.write(to: url)
-            sync()
-        }
-        
-        // Final delete
-        try FileManager.default.removeItem(at: url)
+
+            // Final delete
+            try FileManager.default.removeItem(at: url)
+        }.value
     }
     
     /// Validates sandbox container integrity

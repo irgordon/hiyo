@@ -93,7 +93,7 @@ enum SecureMLX {
     }
 
     /// Clears all MLX caches securely
-    static func clearAllCaches() throws {
+    static func clearAllCaches() async throws {
         let cacheDir = try secureCacheDirectory()
 
         // Securely delete each file
@@ -103,7 +103,7 @@ enum SecureMLX {
         )
 
         for item in contents {
-            try SecureFileManager.secureDelete(at: item)
+            try await SecureFileManager.secureDelete(at: item)
         }
 
         // Clear MLX GPU cache
