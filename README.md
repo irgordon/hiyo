@@ -78,19 +78,19 @@ Hiyo is built on a modern, secure architecture:
 
 ```mermaid
 graph TD
-  subgraph Hiyo (SwiftUI)
-    ChatUI[Chat UI]
-    SidebarUI[Sidebar UI]
-    SettingsUI[Settings UI]
-    ChatUI --> HiyoStore
-    SidebarUI --> HiyoStore
-    SettingsUI --> HiyoStore
+  subgraph "Hiyo - SwiftUI"
+    ChatUI["Chat UI"]
+    SidebarUI["Sidebar UI"]
+    SettingsUI["Settings UI"]
   end
 
-  HiyoStore[HiyoStore (SwiftData)] --> MLXProvider
-  MLXProvider[MLXProvider (MLX Swift)] --> MLXFramework
-  MLXFramework[Apple MLX Framework] --> AppleGPU
-  AppleGPU[Apple Silicon GPU]
+  ChatUI --> Store["HiyoStore - SwiftData"]
+  SidebarUI --> Store
+  SettingsUI --> Store
+
+  Store --> Provider["MLXProvider - MLX Swift"]
+  Provider --> Framework["Apple MLX Framework"]
+  Framework --> GPU["Apple Silicon GPU"]
 ```
 
 ---
