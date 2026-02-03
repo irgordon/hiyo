@@ -9,9 +9,19 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var appState: HiyoState
-    @StateObject private var store = try! HiyoStore()
+
+    @StateObject private var store: HiyoStore = {
+        do {
+            return try HiyoStore()
+        } catch {
+            NSLog("Failed to initialize HiyoStore: \(error.localizedDescription)")
+            // Fallback to an empty, non-persistent store implementation.
+            return HiyoStore.emptyFallback()
+        }
+    }()
+
     @StateObject private var provider = MLXProvider()
-    
+
     var body: some View {
         NavigationSplitView(columnVisibility: $appState.isSidebarVisible) {
             // MARK: Sidebar
@@ -38,29 +48,32 @@ struct ContentView: View {
                     Image(systemName: "sidebar.left")
                 }
                 .help("Toggle Sidebar")
-                
+
                 Button(action: { createNewChat() }) {
                     Image(systemName: "square.and.pencil")
                 }
                 .help("New Conversation")
             }
-            
+
             ToolbarItemGroup(placement: .principal) {
                 if provider.isAvailable {
-                    ModelPicker(selectedModel: $appState.selectedModel, models: provider.availableModels)
-                        .frame(width: 220)
+                    ModelPicker(
+                        selectedModel: $appState.selectedModel,
+                        models: provider.availableModels
+                    )
+                    .frame(width: 220)
                 }
             }
-            
+
             ToolbarItemGroup(placement: .automatic) {
                 if provider.isLoading {
                     ProgressView()
                         .scaleEffect(0.8)
                         .frame(width: 20)
                 }
-                
+
                 ConnectionStatusBadge(provider: provider)
-                
+
                 Menu {
                     Button("Export as Text...") { exportAsText() }
                     Button("Export as JSON...") { exportAsJSON() }
@@ -81,45 +94,59 @@ struct ContentView: View {
         }
         .onChange(of: appState.selectedModel) { newModel in
             Task {
-                try? await provider.loadModel(newModel)
+                do {
+                    try await provider.loadModel(newModel)
+                } catch {
+                    NSLog("Model load failed for \(newModel): \(error.localizedDescription)")
+                    // Optionally surface a user-facing, non-technical error here.
+                }
             }
         }
     }
-    
+
+    // MARK: - Actions
+
     private func createNewChat() {
         let chat = store.createChat(title: "New Chat", model: appState.selectedModel)
         NotificationCenter.default.post(name: .focusInputField, object: nil)
-        
+
         // Auto-load model if needed
         if provider.currentModel != appState.selectedModel {
             Task {
-                try? await provider.loadModel(appState.selectedModel)
+                do {
+                    try await provider.loadModel(appState.selectedModel)
+                } catch {
+                    NSLog("Model auto-load failed for \(appState.selectedModel): \(error.localizedDescription)")
+                }
             }
         }
     }
-    
+
     private func clearCurrentChat() {
         if let chat = store.currentChat {
             store.clearMessages(in: chat)
         }
     }
-    
+
     private func exportAsText() {
+        // Downstream handlers must ensure sensitive content is handled safely.
         NotificationCenter.default.post(name: .exportConversation, object: "txt")
     }
-    
+
     private func exportAsJSON() {
+        // Downstream handlers must ensure sensitive content is handled safely.
         NotificationCenter.default.post(name: .exportConversation, object: "json")
     }
-    
+
     private func printConversation() {
-        // Implementation for print dialog
+        // Implementation for print dialog.
+        // Ensure printed content respects user privacy and does not log raw data.
     }
 }
 
 struct ConnectionStatusBadge: View {
     @ObservedObject var provider: MLXProvider
-    
+
     var body: some View {
         HStack(spacing: 6) {
             Circle()
@@ -133,12 +160,12 @@ struct ConnectionStatusBadge: View {
         .background(.ultraThinMaterial)
         .cornerRadius(6)
     }
-    
+
     private var statusColor: Color {
         if provider.isLoading { return .orange }
         return provider.isAvailable ? .green : .red
     }
-    
+
     private var statusText: String {
         if provider.isLoading { return "Loading" }
         return provider.isAvailable ? "Ready" : "Offline"
