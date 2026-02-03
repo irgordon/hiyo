@@ -48,8 +48,14 @@ final class MLXProvider: ObservableObject {
         // Check cancellation
         try Task.checkCancellation()
         
+        // Get secure cache directory
+        let cacheDir = try SecureMLX.secureCacheDirectory()
+
         // Load with progress
-        let config = ModelConfiguration(id: sanitizedId)
+        let config = ModelConfiguration(
+            id: sanitizedId,
+            overrideDirectory: cacheDir
+        )
         
         loadTask = Task {
             self.modelContainer = try await LLMModelFactory.shared.loadContainer(
