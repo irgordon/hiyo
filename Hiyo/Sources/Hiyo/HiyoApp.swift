@@ -23,7 +23,7 @@ struct HiyoApp: App {
     @StateObject private var appState = HiyoState()
 
     init() {
-        configureMLXGPU()
+        SecureMLX.configureSafeLimits()
         enforceSecurityIntegrity()
         configureDefaults()
     }
@@ -89,18 +89,6 @@ struct HiyoApp: App {
     }
 
     // MARK: - Configuration
-
-    private func configureMLXGPU() {
-        // Example: adapt limits based on total GPU memory if MLX exposes it.
-        // Fallback to conservative defaults if not available.
-        let totalMemoryBytes = MLX.GPU.totalMemory() ?? (8 * 1024 * 1024 * 1024) // assume 8GB if unknown
-
-        let cacheLimit = totalMemoryBytes / 8          // 12.5% for cache
-        let memoryLimit = totalMemoryBytes / 2         // 50% overall limit
-
-        MLX.GPU.set(cacheLimit: cacheLimit)
-        MLX.GPU.set(memoryLimit: memoryLimit)
-    }
 
     private func enforceSecurityIntegrity() {
         CodeIntegrity.enforceIntegrity()
