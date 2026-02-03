@@ -15,11 +15,7 @@ struct ConversationSidebar: View {
     @State private var chatToDelete: Chat?
     
     var filteredChats: [Chat] {
-        if searchText.isEmpty { return store.chats }
-        return store.chats.filter { 
-            $0.title.localizedCaseInsensitiveContains(searchText) ||
-            $0.messages.contains { $0.content.localizedCaseInsensitiveContains(searchText) }
-        }
+        store.searchChats(query: searchText)
     }
     
     var body: some View {

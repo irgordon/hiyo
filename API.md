@@ -97,6 +97,7 @@ final class HiyoStore: ObservableObject {
     func createChat(title: String, model: String) -> Chat
     func deleteChat(_ chat: Chat)
     func duplicateChat(_ chat: Chat)
+    func searchChats(query: String) -> [Chat]
     
     // Message Management
     func addMessage(_ content: String, role: MessageRole, to chat: Chat) -> Message

@@ -95,6 +95,31 @@ final class HiyoStore: ObservableObject {
         }
     }
     
+    func searchChats(query: String) -> [Chat] {
+        if query.isEmpty {
+            return chats
+        }
+
+        let predicate = #Predicate<Chat> { chat in
+            chat.title.localizedStandardContains(query) ||
+            chat.messages.contains { message in
+                message.content.localizedStandardContains(query)
+            }
+        }
+
+        let descriptor = FetchDescriptor<Chat>(
+            predicate: predicate,
+            sortBy: [SortDescriptor(\.modifiedAt, order: .reverse)]
+        )
+
+        do {
+            return try modelContext.fetch(descriptor)
+        } catch {
+            self.error = error
+            return []
+        }
+    }
+
     // MARK: - Message Management
     
     func addMessage(_ content: String, role: MessageRole, to chat: Chat) -> Message {
