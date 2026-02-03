@@ -27,6 +27,7 @@ let package = Package(
                 .product(name: "MLXOptimizers", package: "mlx-swift"),
                 .product(name: "Transformers", package: "swift-transformers")
             ],
+            path: "Hiyo/Sources/Hiyo",
             resources: [
                 // Ensures icons, prompts, configs, and other assets are bundled.
                 .process("Resources")
@@ -40,6 +41,7 @@ let package = Package(
         .testTarget(
             name: "HiyoTests",
             dependencies: ["Hiyo"],
+            path: "Hiyo/Tests/HiyoTests",
             resources: [
                 // Allows test fixtures, sample JSON, etc.
                 .process("Resources")
