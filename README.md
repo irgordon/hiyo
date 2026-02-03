@@ -116,62 +116,92 @@ xcodebuild -exportArchive -archivePath Hiyo.xcarchive -exportOptionsPlist Export
 
 ```
 Hiyo/
-├── HiyoApp.swift                 # App entry point & lifecycle
-├── ContentView.swift             # Main three-column layout
-├── HiyoState.swift               # Global app state
-│
-├── Core/                         # Business Logic
-│   ├── HiyoStore.swift           # SwiftData persistence layer
-│   ├── HiyoProvider.swift        # Ollama API client
-│   ├── SecureNotification.swift  # Internal notification system
-│   └── Models/
-│       ├── Chat.swift            # Conversation model
-│       └── Message.swift         # Message model
-│
-├── Security/                     # Defense-in-depth security
-│   ├── SecureKeychain.swift      # Encrypted key storage
-│   ├── CodeIntegrity.swift       # Runtime tamper detection
-│   ├── SecureMemory.swift        # Safe memory handling
-│   ├── SecureNetworkSession.swift # Hardened networking
-│   ├── SecureFileManager.swift   # Secure file operations
-│   ├── ResourceGuard.swift       # DoS prevention
-│   ├── SecurityLogger.swift      # Security event logging
-│   └── InputValidator.swift      # Input sanitization
-│
-├── UI/                           # Interface Components
-│   ├── Welcome/
-│   │   ├── HiyoWelcomeView.swift # Branded welcome screen
-│   │   ├── OfflineStateView.swift # Connection help
-│   │   └── ModelCapsule.swift    # Model display component
-│   │
-│   ├── Chat/
-│   │   ├── ChatView.swift        # Main conversation view
-│   │   ├── MessageView.swift     # Message bubbles
-│   │   └── TypingIndicator.swift # Loading animation
-│   │
-│   ├── Sidebar/
-│   │   ├── ConversationSidebar.swift # Chat list
-│   │   └── ConversationRow.swift     # List items
-│   │
-│   ├── Settings/
-│   │   ├── SettingsView.swift    # Settings container
-│   │   ├── GeneralSettings.swift # General preferences
-│   │   ├── PrivacySettings.swift # Security controls
-│   │   ├── ModelsSettings.swift  # Model management
-│   │   └── AdvancedSettings.swift # Expert options
-│   │
-│   └── Shared/
-│       ├── ModelPicker.swift     # Toolbar model selector
-│       └── ConnectionStatusBadge.swift # Online indicator
-│
-├── Resources/
-│   ├── Assets.xcassets/          # Icons & images
-│   ├── Hiyo.entitlements         # Sandbox configuration
-│   └── Info.plist                # App metadata
-│
+├── Package.swift
+├── .gitignore
+├── README.md
+├── LICENSE
+├── Assets/
+│   ├── HiyoLogo.png
+│   ├── HiyoLogo@2x.png
+│   ├── AppIcon.appiconset/
+│   │   ├── Contents.json
+│   │   ├── icon_16x16.png
+│   │   ├── icon_16x16@2x.png
+│   │   ├── icon_32x32.png
+│   │   ├── icon_32x32@2x.png
+│   │   ├── icon_128x128.png
+│   │   ├── icon_128x128@2x.png
+│   │   ├── icon_256x256.png
+│   │   ├── icon_256x256@2x.png
+│   │   ├── icon_512x512.png
+│   │   └── icon_512x512@2x.png
+│   └── Preview Content/
+│       └── Preview Assets.xcassets/
+│           └── Contents.json
+├── Sources/
+│   └── Hiyo/
+│       ├── HiyoApp.swift
+│       ├── ContentView.swift
+│       ├── HiyoState.swift
+│       ├── Core/
+│       │   ├── HiyoStore.swift
+│       │   ├── MLXProvider.swift
+│       │   ├── MLXModelRegistry.swift
+│       │   ├── SecureNotification.swift
+│       │   └── Models/
+│       │       ├── Chat.swift
+│       │       └── Message.swift
+│       ├── Security/
+│       │   ├── SecureKeychain.swift
+│       │   ├── CodeIntegrity.swift
+│       │   ├── SecureMemory.swift
+│       │   ├── SecureNetworkSession.swift
+│       │   ├── SecureFileManager.swift
+│       │   ├── ResourceGuard.swift
+│       │   ├── SecurityLogger.swift
+│       │   ├── InputValidator.swift
+│       │   └── SecureMLX.swift
+│       ├── UI/
+│       │   ├── Welcome/
+│       │   │   ├── HiyoWelcomeView.swift
+│       │   │   ├── ReadyStateView.swift
+│       │   │   ├── LoadingStateView.swift
+│       │   │   ├── SetupStateView.swift
+│       │   │   └── FeatureRow.swift
+│       │   ├── Chat/
+│       │   │   ├── ChatView.swift
+│       │   │   ├── MessageView.swift
+│       │   │   ├── TypingIndicator.swift
+│       │   │   └── LoadingProgressBar.swift
+│       │   ├── Sidebar/
+│       │   │   ├── ConversationSidebar.swift
+│       │   │   └── ConversationRow.swift
+│       │   ├── Settings/
+│       │   │   ├── SettingsView.swift
+│       │   │   ├── MLXSettingsView.swift
+│       │   │   ├── ModelsSettings.swift
+│       │   │   ├── ModelRow.swift
+│       │   │   ├── PerformanceSettings.swift
+│       │   │   ├── PrivacySettings.swift
+│       │   │   └── GeneralSettings.swift
+│       │   └── Shared/
+│       │       ├── ModelPicker.swift
+│       │       └── ConnectionStatusBadge.swift
+│       ├── Resources/
+│       │   ├── Hiyo.entitlements
+│       │   └── Info.plist
+│       └── Utils/
+│           ├── Extensions/
+│           │   ├── String+Validation.swift
+│           │   └── Date+Formatting.swift
+│           └── Constants.swift
 └── Tests/
-    ├── HiyoTests.swift           # Unit tests
-    └── HiyoUITests.swift         # UI automation
+    ├── HiyoTests/
+    │   ├── HiyoTests.swift
+    │   ├── MLXProviderTests.swift
+    │   └── SecurityTests.swift
+    └── HiyoUITests/
+        └── HiyoUITests.swift
 ```
 
 ---
