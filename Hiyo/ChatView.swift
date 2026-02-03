@@ -114,8 +114,8 @@ struct ChatView: View {
                 for try await token in stream {
                     assistantContent += token
                     assistantMessage.content = assistantContent
-                    try? store.modelContext.save()
                 }
+                try? store.modelContext.save()
             } catch {
                 store.addMessage("Error: \(error.localizedDescription)", role: .system, to: chat)
             }
