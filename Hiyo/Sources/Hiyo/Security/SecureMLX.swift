@@ -8,137 +8,167 @@
 import Foundation
 import MLX
 
+// MARK: - Policy
+
+private enum SecureMLXPolicy {
+    static let cacheSubdirectory = "Hiyo/Models"
+
+    // Heuristic model size bounds (bytes)
+    static let minModelSize: UInt64 = 1_000_000        // ~1 MB
+    static let maxModelSize: UInt64 = 20_000_000_000   // ~20 GB
+
+    // Allowed model file extensions
+    static let allowedExtensions = ["safetensors", "bin", "mlx", "weights"]
+}
+
 enum SecureMLX {
     /// Validates model ID for Hugging Face Hub
     static func validateModelID(_ id: String) throws -> String {
         // Reuse main validator
         return try InputValidator.validateModelIdentifier(id)
     }
-    
+
     /// Sanitizes cache directory and checks for symlinks
     static func secureCacheDirectory() throws -> URL {
-        let cache = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
-            .appendingPathComponent("Hiyo/Models", isDirectory: true)
-        
+        let fm = FileManager.default
+
+        guard let baseCache = fm.urls(for: .cachesDirectory, in: .userDomainMask).first else {
+            throw MLXSecurityError.cacheDirectoryUnavailable
+        }
+
+        let cache = baseCache.appendingPathComponent(SecureMLXPolicy.cacheSubdirectory, isDirectory: true)
+
         // Create with secure permissions
-        try FileManager.default.createDirectory(
+        try fm.createDirectory(
             at: cache,
             withIntermediateDirectories: true,
             attributes: [.posixPermissions: 0o700]
         )
-        
-        // Resolve and verify no symlinks
+
+        // Resolve and verify no symlinks in the path chain
         let resolved = cache.resolvingSymlinksInPath()
-        let fm = FileManager.default
-        
-        // Walk path and verify each component
-        var currentPath = resolved
-        while currentPath.path != "/" {
-            let attrs = try fm.attributesOfItem(atPath: currentPath.path)
-            let type = attrs[.type] as? FileAttributeType
-            
-            if type == .typeSymbolicLink {
-                SecurityLogger.log(.sandboxEscapeAttempt, details: "Symlink in cache path: \(currentPath.path)")
+
+        var currentURL = resolved
+        // Walk up until we reach the base cache directory or root
+        while currentURL.path != baseCache.path && currentURL.path != "/" {
+            let resourceValues = try currentURL.resourceValues(forKeys: [.isSymbolicLinkKey])
+            if resourceValues.isSymbolicLink == true {
+                SecurityLogger.log(
+                    .sandboxEscapeAttempt,
+                    details: "Symlink detected in MLX cache path"
+                )
                 throw MLXSecurityError.symbolicLinkInPath
             }
-            
-            currentPath = currentPath.deletingLastPathComponent()
+            currentURL.deleteLastPathComponent()
         }
-        
+
         return resolved
     }
-    
+
     /// Validates downloaded model weights
     static func validateModelWeights(at url: URL) throws {
+        let fm = FileManager.default
+
         // Check file exists and is readable
-        guard FileManager.default.isReadableFile(atPath: url.path) else {
+        guard fm.isReadableFile(atPath: url.path) else {
             throw MLXSecurityError.weightsNotReadable
         }
-        
+
         // Check file size is reasonable (not empty, not huge)
-        let attrs = try FileManager.default.attributesOfItem(atPath: url.path)
+        let attrs = try fm.attributesOfItem(atPath: url.path)
         guard let size = attrs[.size] as? UInt64 else {
             throw MLXSecurityError.invalidWeights
         }
-        
-        // MLX models typically 100MB - 10GB
-        guard size > 1_000_000 && size < 20_000_000_000 else {
+
+        guard size >= SecureMLXPolicy.minModelSize,
+              size <= SecureMLXPolicy.maxModelSize else {
             throw MLXSecurityError.invalidWeightsSize(size)
         }
-        
+
         // Verify file extension
         let ext = url.pathExtension.lowercased()
-        let allowedExts = ["safetensors", "bin", "mlx", "weights"]
-        guard allowedExts.contains(ext) else {
+        guard SecureMLXPolicy.allowedExtensions.contains(ext) else {
             throw MLXSecurityError.invalidWeightsFormat(ext)
         }
     }
-    
+
     /// Clears all MLX caches securely
     static func clearAllCaches() throws {
         let cacheDir = try secureCacheDirectory()
-        
+
         // Securely delete each file
-        let contents = try FileManager.default.contentsOfDirectory(at: cacheDir, includingPropertiesForKeys: nil)
+        let contents = try FileManager.default.contentsOfDirectory(
+            at: cacheDir,
+            includingPropertiesForKeys: nil
+        )
+
         for item in contents {
             try SecureFileManager.secureDelete(at: item)
         }
-        
+
         // Clear MLX GPU cache
         MLX.GPU.clearCache()
-        
+
         SecurityLogger.log(.dataCleared, details: "All MLX caches cleared")
     }
-    
-    /// Sets safe MLX GPU limits
+
+    /// Sets safe MLX GPU limits (adaptive where possible)
     static func configureSafeLimits() {
-        // Limit cache to 1GB by default
-        MLX.GPU.set(cacheLimit: 1024 * 1024 * 1024)
-        
-        // Limit total memory to 4GB
-        MLX.GPU.set(memoryLimit: 4 * 1024 * 1024 * 1024)
-        
-        // Enable memory warning handling
-        // MLX will automatically free cache on pressure
+        // Prefer adaptive limits based on total GPU memory if available.
+        let totalMemory = MLX.GPU.totalMemory() ?? (8 * 1024 * 1024 * 1024) // Assume 8 GB if unknown
+
+        let cacheLimit = totalMemory / 8      // ~12.5% for cache
+        let memoryLimit = totalMemory / 2     // ~50% overall limit
+
+        MLX.GPU.set(cacheLimit: cacheLimit)
+        MLX.GPU.set(memoryLimit: memoryLimit)
     }
-    
+
     /// Checks if MLX is running in safe mode
+    @discardableResult
     static func verifyMLXConfiguration() -> Bool {
         let cacheLimit = MLX.GPU.cacheLimit
         let memoryLimit = MLX.GPU.memoryLimit
-        
-        // Verify limits are set
-        guard cacheLimit > 0 && cacheLimit <= 8 * 1024 * 1024 * 1024 else {
-            return false
+        let totalMemory = MLX.GPU.totalMemory() ?? (16 * 1024 * 1024 * 1024) // Assume 16 GB if unknown
+
+        let cacheOK = cacheLimit > 0 && cacheLimit <= totalMemory
+        let memoryOK = memoryLimit > 0 && memoryLimit <= totalMemory
+
+        let isSafe = cacheOK && memoryOK
+
+        if !isSafe {
+            SecurityLogger.log(
+                .configurationError,
+                details: "MLX GPU limits out of expected range (cache: \(cacheLimit), memory: \(memoryLimit))"
+            )
         }
-        
-        guard memoryLimit > 0 && memoryLimit <= 16 * 1024 * 1024 * 1024 else {
-            return false
-        }
-        
-        return true
+
+        return isSafe
     }
 }
 
-enum MLXSecurityError: Error {
+enum MLXSecurityError: LocalizedError {
+    case cacheDirectoryUnavailable
     case symbolicLinkInPath
     case weightsNotReadable
     case invalidWeights
     case invalidWeightsSize(UInt64)
     case invalidWeightsFormat(String)
-    
-    var localizedDescription: String {
+
+    var errorDescription: String? {
         switch self {
-        case .symbolicLinkInPath: 
-            return "Security violation: symbolic link detected in cache path"
-        case .weightsNotReadable: 
-            return "Model weights not accessible"
-        case .invalidWeights: 
-            return "Invalid model weights file"
-        case .invalidWeightsSize(let size): 
-            return "Model weights size suspicious: \(size) bytes"
-        case .invalidWeightsFormat(let ext): 
-            return "Unsupported model format: .\(ext)"
+        case .cacheDirectoryUnavailable:
+            return "Unable to locate a valid cache directory for MLX."
+        case .symbolicLinkInPath:
+            return "Security violation: symbolic link detected in MLX cache path."
+        case .weightsNotReadable:
+            return "Model weights are not accessible."
+        case .invalidWeights:
+            return "Invalid model weights file."
+        case .invalidWeightsSize(let size):
+            return "Model weights size is suspicious: \(size) bytes."
+        case .invalidWeightsFormat(let ext):
+            return "Unsupported model format: .\(ext)."
         }
     }
 }
