@@ -75,23 +75,48 @@ final class HiyoStore: ObservableObject {
     }
     
     func duplicateChat(_ chat: Chat) {
-        let newChat = Chat(title: chat.title + " Copy", modelIdentifier: chat.modelIdentifier)
+        let chatID = chat.id
+        let container = modelContainer
         
-        for message in chat.messages {
-            let newMessage = Message(content: message.content, role: message.role)
-            newMessage.tokensUsed = message.tokensUsed
-            newMessage.latencyMs = message.latencyMs
-            newChat.messages.append(newMessage)
-        }
-        
-        modelContext.insert(newChat)
-        
-        do {
-            try modelContext.save()
-            chats.insert(newChat, at: 0)
-            currentChat = newChat
-        } catch {
-            self.error = error
+        Task.detached(priority: .userInitiated) {
+            do {
+                let context = ModelContext(container)
+                context.autosaveEnabled = false
+
+                let descriptor = FetchDescriptor<Chat>(predicate: #Predicate { $0.id == chatID })
+                guard let originalChat = try context.fetch(descriptor).first else { return }
+
+                let newChat = Chat(title: originalChat.title + " Copy", modelIdentifier: originalChat.modelIdentifier)
+
+                // Sort messages to ensure order is preserved
+                let sortedMessages = originalChat.messages.sorted { $0.timestamp < $1.timestamp }
+
+                for message in sortedMessages {
+                    let newMessage = Message(content: message.content, role: message.role)
+                    newMessage.tokensUsed = message.tokensUsed
+                    newMessage.latencyMs = message.latencyMs
+                    newChat.messages.append(newMessage)
+                }
+
+                context.insert(newChat)
+                try context.save()
+
+                let newChatID = newChat.id
+
+                await MainActor.run { [weak self] in
+                    guard let self = self else { return }
+
+                    let mainDescriptor = FetchDescriptor<Chat>(predicate: #Predicate { $0.id == newChatID })
+                    if let fetchedNewChat = try? self.modelContext.fetch(mainDescriptor).first {
+                        self.chats.insert(fetchedNewChat, at: 0)
+                        self.currentChat = fetchedNewChat
+                    }
+                }
+            } catch {
+                await MainActor.run { [weak self] in
+                    self?.error = error
+                }
+            }
         }
     }
     
