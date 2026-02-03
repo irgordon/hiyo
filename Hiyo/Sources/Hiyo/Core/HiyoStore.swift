@@ -148,34 +148,40 @@ final class HiyoStore: ObservableObject {
         SecurityLogger.log(.exportOperation, details: "Exported to \(url.lastPathComponent)")
     }
     
-    func importChats(from url: URL) throws {
+    func importChats(from url: URL) async throws {
         guard url.pathExtension == "hiyo" || url.pathExtension == "encrypted" else {
             throw FileError.invalidPath
         }
         
-        let data = try Data(contentsOf: url, options: .mappedIfSafe)
-        let sealedBox = try AES.GCM.SealedBox(combined: data)
-        let decrypted = try AES.GCM.open(sealedBox, using: encryptionKey)
+        // Capture key for background task
+        let key = self.encryptionKey
         
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        let imported = try decoder.decode([Chat].self, from: decrypted)
+        // Decode to DTOs in background to ensure Sendable safety
+        let importedDTOs = try await Task.detached(priority: .userInitiated) {
+            let data = try Data(contentsOf: url, options: .mappedIfSafe)
+            let sealedBox = try AES.GCM.SealedBox(combined: data)
+            let decrypted = try AES.GCM.open(sealedBox, using: key)
+
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            return try decoder.decode([ChatDTO].self, from: decrypted)
+        }.value
         
         // Validate and import
-        for chat in imported {
-            guard chat.messages.count < 10000 else {
+        for chatDTO in importedDTOs {
+            guard chatDTO.messages.count < 10000 else {
                 throw SecurityError.validationFailed("Chat too large")
             }
             
             // Create new IDs to avoid conflicts
-            let newChat = Chat(title: chat.title, modelIdentifier: chat.modelIdentifier)
-            newChat.createdAt = chat.createdAt
+            let newChat = Chat(title: chatDTO.title, modelIdentifier: chatDTO.modelIdentifier)
+            newChat.createdAt = chatDTO.createdAt
             newChat.modifiedAt = Date()
             
-            for msg in chat.messages {
-                let newMsg = Message(content: msg.content, role: msg.role)
-                newMsg.timestamp = msg.timestamp
-                newMsg.tokensUsed = msg.tokensUsed
+            for msgDTO in chatDTO.messages {
+                let newMsg = Message(content: msgDTO.content, role: msgDTO.role)
+                newMsg.timestamp = msgDTO.timestamp
+                newMsg.tokensUsed = msgDTO.tokensUsed
                 newChat.messages.append(newMsg)
             }
             
@@ -184,7 +190,7 @@ final class HiyoStore: ObservableObject {
         
         try modelContext.save()
         fetchChats()
-        SecurityLogger.log(.importOperation, details: "Imported \(imported.count) chats")
+        SecurityLogger.log(.importOperation, details: "Imported \(importedDTOs.count) chats")
     }
     
     func clearAllData() {
@@ -246,4 +252,24 @@ final class HiyoStore: ObservableObject {
 enum SecurityError: Error {
     case encryptionFailed
     case validationFailed(String)
+}
+
+// MARK: - Import DTOs
+
+private struct ChatDTO: Codable, Sendable {
+    let id: UUID
+    let title: String
+    let createdAt: Date
+    let modifiedAt: Date
+    let messages: [MessageDTO]
+    let modelIdentifier: String
+}
+
+private struct MessageDTO: Codable, Sendable {
+    let id: UUID
+    let content: String
+    let role: MessageRole
+    let timestamp: Date
+    let tokensUsed: Int?
+    let latencyMs: Double?
 }
