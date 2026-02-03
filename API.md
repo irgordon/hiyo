@@ -104,7 +104,7 @@ final class HiyoStore: ObservableObject {
     
     // Import/Export
     func exportChats(to url: URL) throws
-    func importChats(from url: URL) throws
+    func importChats(from url: URL) async throws
     func clearAllData()
     
     // Queries
