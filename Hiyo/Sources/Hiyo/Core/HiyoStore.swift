@@ -48,7 +48,7 @@ final class HiyoStore: ObservableObject {
         
         do {
             try modelContext.save()
-            fetchChats()
+            chats.insert(chat, at: 0)
             currentChat = chat
             SecurityLogger.log(.modelLoaded, details: "Created chat: \(chat.id)")
         } catch {
@@ -67,7 +67,7 @@ final class HiyoStore: ObservableObject {
         
         do {
             try modelContext.save()
-            fetchChats()
+            chats.removeAll { $0.id == chat.id }
             SecurityLogger.log(.dataCleared, details: "Deleted chat: \(chat.id)")
         } catch {
             self.error = error
@@ -88,7 +88,7 @@ final class HiyoStore: ObservableObject {
         
         do {
             try modelContext.save()
-            fetchChats()
+            chats.insert(newChat, at: 0)
             currentChat = newChat
         } catch {
             self.error = error
@@ -193,6 +193,7 @@ final class HiyoStore: ObservableObject {
         }.value
         
         // Validate and import
+        var newChats: [Chat] = []
         for chatDTO in importedDTOs {
             guard chatDTO.messages.count < 10000 else {
                 throw SecurityError.validationFailed("Chat too large")
@@ -211,10 +212,11 @@ final class HiyoStore: ObservableObject {
             }
             
             modelContext.insert(newChat)
+            newChats.append(newChat)
         }
         
         try modelContext.save()
-        fetchChats()
+        chats.insert(contentsOf: newChats, at: 0)
         SecurityLogger.log(.importOperation, details: "Imported \(importedDTOs.count) chats")
     }
     
