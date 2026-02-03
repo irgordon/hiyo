@@ -14,274 +14,215 @@
 
 ## Overview
 
-**Hiyo** is your personal gateway to local AI — a sleek macOS app that brings powerful language models right to your desktop, no cloud required. Whether you're a tech enthusiast, hobbyist, or just curious about what AI can do, Hiyo makes it easy to explore complex ideas with clarity and control.
+**Hiyo** is your personal gateway to local AI — a sleek macOS app that brings powerful language models right to your desktop, no cloud required. Built on Apple's native **MLX framework**, Hiyo delivers exceptional performance on Apple Silicon while keeping everything private and on-device.
 
-Its minimalist interface lets you prompt, experiment, and reason without distractions, while everything stays private and on-device. No logins, no data sharing — just fast, focused intelligence that works the way you do.
+Whether you're a developer, researcher, or just curious about AI, Hiyo makes it easy to explore complex ideas with clarity and control. No logins, no data sharing, no internet connection — just fast, focused intelligence that works the way you do.
 
 With Hiyo, you're not just using AI — you're shaping it.
 
 ---
 
-## ✨ Core Features
+## ✨ Why Hiyo?
 
-| Feature | Description |
-|---------|-------------|
-| 🔒 **Privacy-First** | All conversations stay on your Mac. No cloud, no accounts, no tracking. |
-| 🏠 **Local-Only** | Connects exclusively to localhost — your data never leaves your device. |
-| 🤖 **Multi-Model Support** | Works with Ollama-compatible models: Llama 2, Mistral, CodeLlama, and more. |
-| 🎨 **Native macOS Design** | Built with SwiftUI following Apple's Human Interface Guidelines. |
-| 🔐 **Enterprise Security** | AES-256 encryption, sandboxed, hardened runtime, code signing verification. |
-| ⚡ **Fast & Lightweight** | Optimized for Apple Silicon and Intel Macs. Minimal resource footprint. |
-| 🛠️ **Developer Friendly** | Open source, hackable, with clean architecture for customization. |
+| Feature | Benefit |
+|---------|---------|
+| 🚀 **Apple Silicon Native** | Built on MLX for up to 2x faster inference vs CPU |
+| 🧠 **Unified Memory** | GPU and CPU share memory — no data copying overhead |
+| 🔒 **100% Private** | Everything runs locally. Zero network calls. Zero data sharing. |
+| ⚡ **Instant On** | No servers to start. Models load directly into memory. |
+| 🎯 **Curated Models** | Pre-configured with optimized 4-bit quantized models |
+| 🛡️ **Enterprise Security** | Sandboxed, hardened runtime, code-signed, encrypted storage |
+
+---
+
+## System Requirements
+
+| Requirement | Details |
+|-------------|---------|
+| **macOS** | 14.0 (Sonoma) or later |
+| **Chip** | Apple Silicon (M1/M2/M3) or Intel |
+| **RAM** | 8 GB minimum, 16 GB recommended |
+| **Storage** | 2 GB for app, 2-8 GB per model |
+| **Xcode** | 15.0+ (for building from source) |
+
+> **Note**: MLX-optimized models run best on Apple Silicon. Intel Macs supported with reduced performance.
 
 ---
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Option 1: Download Pre-built DMG
 
-- **macOS 14.0** (Sonoma) or later
-- **Xcode 15** or later
-- **Ollama** installed and running locally
+1. Download `Hiyo-1.0.0.dmg` from [Releases](https://github.com/hiyoai/hiyo/releases)
+2. Open DMG and drag **Hiyo** to **Applications**
+3. Launch Hiyo from Applications folder
+4. On first launch, select a model to download (1-4 GB)
+5. Start chatting!
 
-### 1. Install Ollama
+### Option 2: Build from Source
 
-```bash
-# Using Homebrew
-brew install ollama
-
-# Or download from https://ollama.ai
-```
-
-### 2. Start Ollama Service
+See [BUILD_APP.md](BUILD_APP.md) for detailed instructions.
 
 ```bash
-ollama serve
-```
-
-### 3. Pull Your First Model
-
-```bash
-ollama pull llama2
-```
-
----
-
-## 🏗️ Build Instructions
-
-### Clone the Repository
-
-```bash
+# Quick build
 git clone https://github.com/hiyoai/hiyo.git
 cd hiyo
-```
-
-### Open in Xcode
-
-```bash
-open Hiyo.xcodeproj
-```
-
-### Configure Signing
-
-1. Select the **Hiyo** project in Xcode
-2. Select the **Hiyo** target
-3. Go to **Signing & Capabilities**
-4. Set your **Team** (Personal or Developer Account)
-5. Update **Bundle Identifier** if needed (default: `ai.hiyo.mac`)
-
-### Build & Run
-
-```bash
-# Command line build
-xcodebuild -project Hiyo.xcodeproj -scheme Hiyo -configuration Release build
-
-# Or use Xcode: Product → Build (⌘B)
-# Then: Product → Run (⌘R)
-```
-
-### Create Release Build
-
-```bash
-# Archive for distribution
-xcodebuild -project Hiyo.xcodeproj -scheme Hiyo -configuration Release archive -archivePath Hiyo.xcarchive
-
-# Export app
-xcodebuild -exportArchive -archivePath Hiyo.xcarchive -exportOptionsPlist ExportOptions.plist -exportPath ./Release
+swift build -c release
 ```
 
 ---
 
-## 📁 File Structure
+## 🏗️ Architecture
 
-```
-Hiyo/
-├── Package.swift
-├── .gitignore
-├── README.md
-├── LICENSE
-├── Assets/
-│   ├── HiyoLogo.png
-│   ├── HiyoLogo@2x.png
-│   ├── AppIcon.appiconset/
-│   │   ├── Contents.json
-│   │   ├── icon_16x16.png
-│   │   ├── icon_16x16@2x.png
-│   │   ├── icon_32x32.png
-│   │   ├── icon_32x32@2x.png
-│   │   ├── icon_128x128.png
-│   │   ├── icon_128x128@2x.png
-│   │   ├── icon_256x256.png
-│   │   ├── icon_256x256@2x.png
-│   │   ├── icon_512x512.png
-│   │   └── icon_512x512@2x.png
-│   └── Preview Content/
-│       └── Preview Assets.xcassets/
-│           └── Contents.json
-├── Sources/
-│   └── Hiyo/
-│       ├── HiyoApp.swift
-│       ├── ContentView.swift
-│       ├── HiyoState.swift
-│       ├── Core/
-│       │   ├── HiyoStore.swift
-│       │   ├── MLXProvider.swift
-│       │   ├── MLXModelRegistry.swift
-│       │   ├── SecureNotification.swift
-│       │   └── Models/
-│       │       ├── Chat.swift
-│       │       └── Message.swift
-│       ├── Security/
-│       │   ├── SecureKeychain.swift
-│       │   ├── CodeIntegrity.swift
-│       │   ├── SecureMemory.swift
-│       │   ├── SecureNetworkSession.swift
-│       │   ├── SecureFileManager.swift
-│       │   ├── ResourceGuard.swift
-│       │   ├── SecurityLogger.swift
-│       │   ├── InputValidator.swift
-│       │   └── SecureMLX.swift
-│       ├── UI/
-│       │   ├── Welcome/
-│       │   │   ├── HiyoWelcomeView.swift
-│       │   │   ├── ReadyStateView.swift
-│       │   │   ├── LoadingStateView.swift
-│       │   │   ├── SetupStateView.swift
-│       │   │   └── FeatureRow.swift
-│       │   ├── Chat/
-│       │   │   ├── ChatView.swift
-│       │   │   ├── MessageView.swift
-│       │   │   ├── TypingIndicator.swift
-│       │   │   └── LoadingProgressBar.swift
-│       │   ├── Sidebar/
-│       │   │   ├── ConversationSidebar.swift
-│       │   │   └── ConversationRow.swift
-│       │   ├── Settings/
-│       │   │   ├── SettingsView.swift
-│       │   │   ├── MLXSettingsView.swift
-│       │   │   ├── ModelsSettings.swift
-│       │   │   ├── ModelRow.swift
-│       │   │   ├── PerformanceSettings.swift
-│       │   │   ├── PrivacySettings.swift
-│       │   │   └── GeneralSettings.swift
-│       │   └── Shared/
-│       │       ├── ModelPicker.swift
-│       │       └── ConnectionStatusBadge.swift
-│       ├── Resources/
-│       │   ├── Hiyo.entitlements
-│       │   └── Info.plist
-│       └── Utils/
-│           ├── Extensions/
-│           │   ├── String+Validation.swift
-│           │   └── Date+Formatting.swift
-│           └── Constants.swift
-└── Tests/
-    ├── HiyoTests/
-    │   ├── HiyoTests.swift
-    │   ├── MLXProviderTests.swift
-    │   └── SecurityTests.swift
-    └── HiyoUITests/
-        └── HiyoUITests.swift
-```
-
----
-
-## 🔒 Security Architecture
-
-Hiyo implements **8 layers of security** for production-grade protection:
+Hiyo is built on a modern, secure architecture:
 
 ```
 ┌─────────────────────────────────────────┐
-│  1. Code Integrity Check                │
-│     └─> Runtime signature verification  │
-├─────────────────────────────────────────┤
-│  2. App Sandbox                         │
-│     └─> Strict entitlement enforcement  │
-├─────────────────────────────────────────┤
-│  3. Network Isolation                   │
-│     └─> localhost-only connections      │
-├─────────────────────────────────────────┤
-│  4. Input Validation                    │
-│     └─> Whitelist sanitization          │
-├─────────────────────────────────────────┤
-│  5. Memory Protection                   │
-│     └─> Secure memory with auto-wipe    │
-├─────────────────────────────────────────┤
-│  6. Data Encryption                     │
-│     └─> AES-256-GCM + Secure Enclave    │
-├─────────────────────────────────────────┤
-│  7. Resource Guarding                   │
-│     └─> Rate limiting & DoS prevention  │
-├─────────────────────────────────────────┤
-│  8. Audit Logging                       │
-│     └─> Privacy-preserving event log    │
+│           Hiyo (SwiftUI)                │
+│  ┌─────────┐ ┌─────────┐ ┌──────────┐   │
+│  │  Chat   │ │ Sidebar │ │ Settings │   │
+│  │   UI    │ │   UI    │ │    UI    │   │
+│  └────┬────┘ └───--─┬──┘ └───-─┬────┘   │
+│       └─────────────┬──────────┘        │
+│                     ▼                   │
+│           HiyoStore (SwiftData)         │
+│                     │                   │
+│                     ▼                   │
+│           MLXProvider (MLX Swift)       │
+│                     │                   │
+│                     ▼                   │
+│           Apple MLX Framework           │
+│                     │                   │
+│                     ▼                   │
+│           Apple Silicon GPU             │
 └─────────────────────────────────────────┘
 ```
 
-### Security Certifications
+---
 
-- ✅ **OWASP Mobile Top 10** compliant
-- ✅ **CVE-2024-44148** mitigation (path traversal)
-- ✅ **CVE-2025-31191** mitigation (keychain ACL)
-- ✅ **Apple Hardened Runtime** enabled
-- ✅ **App Sandbox** enforced
+## 🧠 Included Models
+
+Hiyo comes pre-configured with these optimized models:
+
+| Model | Size | Best For |
+|-------|------|----------|
+| **Llama 3.2 1B** | 0.7 GB | Ultra-fast responses, low memory |
+| **Llama 3.2 3B** ⭐ | 1.9 GB | Best balance of speed and quality |
+| **Mistral 7B** | 4.1 GB | Advanced reasoning, complex tasks |
+| **Phi-3 Mini** | 1.8 GB | Efficient, strong performance |
+| **Qwen 2.5 7B** | 4.2 GB | Multilingual, coding |
+| **CodeLlama 7B** | 4.1 GB | Code generation, technical tasks |
+
+All models are **4-bit quantized** from the [MLX Community](https://huggingface.co/mlx-community) on Hugging Face.
+
+---
+
+## 🔒 Security & Privacy
+
+Hiyo implements **defense-in-depth security**:
+
+| Layer | Implementation |
+|-------|---------------|
+| **Sandbox** | Strict macOS App Sandbox |
+| **Code Signing** | Hardened Runtime with integrity checks |
+| **Network** | **Zero** network connections — fully offline |
+| **Storage** | AES-256 encrypted local database |
+| **Memory** | Secure memory with automatic wiping |
+| **Input** | Strict validation and sanitization |
+
+### Privacy Guarantees
+
+- ✅ No cloud processing
+- ✅ No telemetry or analytics
+- ✅ No user accounts or tracking
+- ✅ No iCloud sync
+- ✅ Models cached locally only
 
 ---
 
 ## 🛠️ Development
 
-### Requirements
+### Project Structure
 
-| Component | Version |
-|-----------|---------|
-| macOS | 14.0+ |
-| Xcode | 15.0+ |
-| Swift | 5.9+ |
-| Ollama | 0.1.0+ |
-
-### Architecture
-
-Hiyo follows **Clean Architecture** principles:
-
-- **Presentation Layer**: SwiftUI views with MVVM
-- **Domain Layer**: Business logic in actors (thread-safe)
-- **Data Layer**: SwiftData + secure file operations
-- **Security Layer**: Cross-cutting security controls
+```
+Hiyo/
+├── Package.swift                 # Swift Package Manager manifest
+├── Sources/Hiyo/
+│   ├── HiyoApp.swift            # App entry point
+│   ├── ContentView.swift        # Main UI layout
+│   ├── HiyoState.swift          # Global state
+│   ├── Core/                    # Business logic
+│   │   ├── HiyoStore.swift      # Data persistence
+│   │   ├── MLXProvider.swift    # MLX integration
+│   │   ├── MLXModelRegistry.swift
+│   │   └── Models/              # Chat, Message
+│   ├── Security/                # 9 security modules
+│   ├── UI/                      # SwiftUI views
+│   └── Utils/                   # Extensions, constants
+├── Tests/                       # Unit & UI tests
+└── Assets/                      # Icons, images
+```
 
 ### Key Technologies
 
-- **SwiftData**: Type-safe persistence with CloudKit disabled
-- **CryptoKit**: AES-256-GCM encryption
-- **Network Framework**: Secure localhost networking
-- **Security Framework**: Keychain with biometric ACL
+- **[MLX Swift](https://github.com/ml-explore/mlx-swift)** — Apple's machine learning framework
+- **[SwiftData](https://developer.apple.com/documentation/swiftdata)** — Modern persistence
+- **[SwiftUI](https://developer.apple.com/documentation/swiftui)** — Native UI framework
+- **[CryptoKit](https://developer.apple.com/documentation/cryptokit)** — Encryption
+
+### Building
+
+```bash
+# Clone
+git clone https://github.com/hiyoai/hiyo.git
+cd hiyo
+
+# Resolve dependencies
+swift package resolve
+
+# Build debug
+swift build
+
+# Build release
+swift build -c release
+
+# Run tests
+swift test
+
+# Create Xcode project
+swift package generate-xcodeproj
+```
+
+See [BUILD_APP.md](BUILD_APP.md) for complete DMG creation guide.
+
+---
+
+## 🎮 Usage
+
+### Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `⌘ N` | New conversation |
+| `⌘ ⇧ N` | New window |
+| `⌘ ⇧ K` | Clear current conversation |
+| `⌘ E` | Export conversation |
+| `⌘ ,` | Settings |
+| `⌘ ⌫` | Delete selected conversation |
+| `⌘ ↵` | Send message |
+
+### Tips
+
+- **First launch**: Download a smaller model (1B or 3B) to test
+- **Memory pressure**: Unload unused models in Settings
+- **Long conversations**: Clear history periodically to free context window
+- **Export**: Conversations export as encrypted `.hiyo` files
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-### Quick Start for Contributors
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ```bash
 # Fork and clone
@@ -290,49 +231,34 @@ git clone https://github.com/yourusername/hiyo.git
 # Create branch
 git checkout -b feature/amazing-feature
 
-# Make changes and test
-xcodebuild test -project Hiyo.xcodeproj -scheme Hiyo
+# Make changes, test, commit
+swift test
+git commit -m "Add: amazing feature"
 
-# Commit and push
-git commit -m "Add amazing feature"
+# Push and open PR
 git push origin feature/amazing-feature
-
-# Open Pull Request
 ```
+
+### Areas for Contribution
+
+- [ ] Additional MLX model support
+- [ ] Conversation search
+- [ ] Markdown rendering improvements
+- [ ] Voice input/output
+- [ ] Plugin system
+- [ ] Localization
 
 ---
 
-## 📜 License
+## 📚 Documentation
 
-Hiyo is released under the **MIT License**. See [LICENSE](LICENSE) for details.
-
-```
-MIT License
-
-Copyright (c) 2024 Hiyo
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-```
+- [BUILD_APP.md](BUILD_APP.md) — Complete build instructions
+- [CONTRIBUTING.md](CONTRIBUTING.md) — Contribution guidelines
+- [SECURITY.md](SECURITY.md) — Security architecture details
+- [API.md](API.md) — Internal API documentation
 
 ---
 
 ## 🙏 Acknowledgments
 
-- [Ollama](https://ollama.ai) — For making local LLMs accessible
-- [Apple Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/) — For design excellence
-- [OWASP Mobile Security](https://owasp.org/www-project-mobile-security/) — For security standards
-- [Swift Open Source Community](https://swift.org) — For the language and tools
-
----
+- **[MLX](https://github.com/ml
