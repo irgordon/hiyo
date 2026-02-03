@@ -7,3 +7,4 @@ All notable changes to this project will be documented in this file.
 ### Performance
 - Optimized prompt formatting in `MLXProvider` by using efficient string joining.
 - Removed unused string accumulation in generation loop, eliminating unnecessary memory allocation and copying.
+- Replaced iterative deletion with batch delete in `clearAllData`, improving performance from O(n) to O(1) database operations.
