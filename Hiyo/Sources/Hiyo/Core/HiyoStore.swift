@@ -188,11 +188,8 @@ final class HiyoStore: ObservableObject {
     }
     
     func clearAllData() {
-        for chat in chats {
-            modelContext.delete(chat)
-        }
-        
         do {
+            try modelContext.delete(model: Chat.self)
             try modelContext.save()
             chats = []
             currentChat = nil
