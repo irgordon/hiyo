@@ -429,4 +429,3 @@ Include:
 
 **Last updated**: February 1, 2026
 **Security contact**: security@hiyoapp.dev
-```
