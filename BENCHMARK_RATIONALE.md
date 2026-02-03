@@ -62,3 +62,33 @@ try? store.modelContext.save()
 
 ## Conclusion
 These optimizations focus on reducing I/O and memory overhead by leveraging the database engine for filtering and batching persistence operations.
+
+## 3. Repeated Full Database Fetch Optimization
+
+### Baseline (Current Implementation)
+The `HiyoStore` methods `createChat`, `deleteChat`, `duplicateChat`, and `importChats` all call `fetchChats()` after modifying the database.
+```swift
+func createChat(...) {
+    modelContext.insert(chat)
+    try modelContext.save()
+    fetchChats() // Triggers full fetch
+}
+```
+* **Fetch:** Triggers a full database fetch of all `Chat` objects, sorted by modification date.
+* **Complexity:** O(N) where N is the total number of chats. As the user's history grows, this operation becomes linearly slower.
+* **Overhead:** Re-instantiates objects and rebuilds the `chats` array unnecessarily, even though we know exactly what changed.
+
+### Optimization (Manual Array Update)
+The optimization replaces the full fetch with targeted updates to the in-memory `chats` array:
+```swift
+// In createChat
+chats.insert(chat, at: 0)
+
+// In deleteChat
+chats.removeAll { $0.id == chat.id }
+```
+* **Complexity:**
+    * Create/Duplicate: O(1) (prepending to array).
+    * Delete: O(N) (searching array to remove), but purely in-memory and much faster than database fetch + instantiation.
+* **Efficiency:** avoids round-trip to the persistence store.
+* **Correctness:** Since `Chat` is an observable class, changes to its properties (like `modifiedAt`) are reflected. However, for creation/deletion, updating the list structure manually keeps the UI in sync without re-fetching everything.
