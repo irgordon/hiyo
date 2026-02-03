@@ -10,18 +10,15 @@
     <key>com.apple.security.files.user-selected.read-write</key>
     <true/>
     
-    <!-- Downloads folder access for model caching -->
-    <key>com.apple.security.files.downloads.read-write</key>
-    <true/>
-    
     <!-- Application Support for model storage -->
     <key>com.apple.security.application-groups</key>
     <array>
         <string>ai.hiyo.mac</string>
     </array>
     
-    <!-- No network client entitlement - MLX is local only -->
-    <!-- We don't need com.apple.security.network.client -->
+    <!-- Network Client - Required for downloading models from Hugging Face -->
+    <key>com.apple.security.network.client</key>
+    <true/>
     
     <!-- Hardened Runtime - Prevent code injection -->
     <key>com.apple.security.cs.allow-jit</key>
@@ -38,12 +35,6 @@
     <false/>
     <key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
     <array/>
-    
-    <!-- No iCloud entitlements -->
-    <!-- No push notification entitlements -->
-    <!-- No camera/microphone entitlements -->
-    <!-- No location services -->
-    <!-- No Bluetooth -->
     
     <!-- Keychain access for encryption keys -->
     <key>keychain-access-groups</key>
