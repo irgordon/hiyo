@@ -3,13 +3,19 @@ import PackageDescription
 
 let package = Package(
     name: "Hiyo",
-    platforms: [.macOS(.v14)],
+    defaultLocalization: "en",
+    platforms: [
+        .macOS(.v14)
+    ],
     products: [
+        // Hiyo is a macOS app built via SPM + Xcode integration.
+        // The executable target provides the app’s entry point.
         .executable(name: "Hiyo", targets: ["Hiyo"])
     ],
     dependencies: [
-        .package(url: "https://github.com/ml-explore/mlx-swift.git", from: "0.18.0"),
-        .package(url: "https://github.com/huggingface/swift-transformers.git", from: "0.1.0")
+        // Pin exact versions for reproducible, secure builds.
+        .package(url: "https://github.com/ml-explore/mlx-swift.git", exact: "0.18.0"),
+        .package(url: "https://github.com/huggingface/swift-transformers.git", exact: "0.1.0")
     ],
     targets: [
         .executableTarget(
@@ -21,8 +27,22 @@ let package = Package(
                 .product(name: "MLXOptimizers", package: "mlx-swift"),
                 .product(name: "Transformers", package: "swift-transformers")
             ],
+            resources: [
+                // Ensures icons, prompts, configs, and other assets are bundled.
+                .process("Resources")
+            ],
             swiftSettings: [
-                .enableExperimentalFeature("StrictConcurrency")
+                // Only enable StrictConcurrency if required by your architecture.
+                // Remove this line if not strictly necessary.
+                // .enableExperimentalFeature("StrictConcurrency")
+            ]
+        ),
+        .testTarget(
+            name: "HiyoTests",
+            dependencies: ["Hiyo"],
+            resources: [
+                // Allows test fixtures, sample JSON, etc.
+                .process("Resources")
             ]
         )
     ]
