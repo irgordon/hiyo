@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Performance
+- Moved secure deletion operations to a background thread to prevent UI freezing during cache clearing.
 - Eliminated repeated full database fetches in `HiyoStore` by manually updating the chat list.
 - Optimized prompt formatting in `MLXProvider` by using efficient string joining.
 - Removed unused string accumulation in generation loop, eliminating unnecessary memory allocation and copying.
