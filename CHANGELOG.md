@@ -5,4 +5,5 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Performance
-- Optimized prompt formatting in `MLXProvider` by replacing string concatenation loop with array joining, reducing complexity from O(n²) to O(n).
+- Optimized prompt formatting in `MLXProvider` by using efficient string joining.
+- Removed unused string accumulation in generation loop, eliminating unnecessary memory allocation and copying.

@@ -118,8 +118,6 @@ final class MLXProvider: ObservableObject {
                         try await ResourceGuard.shared.allocateTokens(inputIds.count)
                         
                         // Stream generation
-                        var generatedText = ""
-                        
                         for response in streamGenerate(
                             model: model,
                             tokenizer: tokenizer,
@@ -129,7 +127,6 @@ final class MLXProvider: ObservableObject {
                             // Check cancellation
                             guard !Task.isCancelled else { break }
                             
-                            generatedText += response.text
                             tokenCount += 1
                             
                             continuation.yield(response.text)
@@ -164,17 +161,18 @@ final class MLXProvider: ObservableObject {
         let lines = messages.map { message -> String in
             switch message.role {
             case "system":
-                return "System: \(message.content)\n"
+                return "System: \(message.content)"
             case "user":
-                return "User: \(message.content)\n"
+                return "User: \(message.content)"
             case "assistant":
-                return "Assistant: \(message.content)\n"
+                return "Assistant: \(message.content)"
             default:
-                return "\(message.content)\n"
+                return "\(message.content)"
             }
         }
         
-        return lines.joined() + "Assistant:"
+        let joined = lines.joined(separator: "\n")
+        return joined.isEmpty ? "Assistant:" : joined + "\nAssistant:"
     }
     
     private func streamGenerate(
