@@ -3,13 +3,13 @@
 //  Hiyo
 //
 //  Individual conversation list item.
-//  Updated to use ChatSummary for zero‑fault list performance.
+//  Updated to use Chat for zero‑fault list performance.
 //
 
 import SwiftUI
 
 struct ConversationRow: View {
-    let chat: ChatSummary
+    let chat: Chat
     let isSelected: Bool
     
     private var iconName: String {

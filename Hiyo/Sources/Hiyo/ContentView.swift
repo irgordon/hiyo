@@ -8,19 +8,20 @@
 import SwiftUI
 
 struct ContentView: View {
-    @EnvironmentObject var appState: HiyoState
+    @Environment(HiyoState.self) var appState
 
-    @StateObject private var store: HiyoStore = {
+    @State private var store: HiyoStore = {
         do {
             return try HiyoStore()
         } catch {
             NSLog("Failed to initialize HiyoStore: \(error.localizedDescription)")
-            // Fallback to an empty, non-persistent store implementation.
-            return HiyoStore.emptyFallback()
+            // Fallback strategy: In production, we might want a recovery mode.
+            // For now, we crash responsibly as persistence is critical.
+            fatalError("Failed to initialize HiyoStore: \(error)")
         }
     }()
 
-    @StateObject private var provider = MLXProvider()
+    @State private var provider = MLXProvider()
 
     var body: some View {
         NavigationSplitView(columnVisibility: $appState.isSidebarVisible) {
@@ -86,13 +87,17 @@ struct ContentView: View {
                 .disabled(store.currentChat == nil)
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .newConversation)) { _ in
-            createNewChat()
+        .task {
+            for await _ in NotificationCenter.default.notifications(named: .newConversation) {
+                createNewChat()
+            }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .clearConversation)) { _ in
-            clearCurrentChat()
+        .task {
+            for await _ in NotificationCenter.default.notifications(named: .clearConversation) {
+                clearCurrentChat()
+            }
         }
-        .onChange(of: appState.selectedModel) { newModel in
+        .onChange(of: appState.selectedModel) { _, newModel in
             Task {
                 do {
                     try await provider.loadModel(newModel)
@@ -145,7 +150,7 @@ struct ContentView: View {
 }
 
 struct ConnectionStatusBadge: View {
-    @ObservedObject var provider: MLXProvider
+    var provider: MLXProvider
 
     var body: some View {
         HStack(spacing: 6) {

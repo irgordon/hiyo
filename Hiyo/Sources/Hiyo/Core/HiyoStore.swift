@@ -8,16 +8,18 @@
 import SwiftData
 import Foundation
 import CryptoKit
+import Observation
 
 @MainActor
-final class HiyoStore: ObservableObject {
+@Observable
+final class HiyoStore {
     let modelContainer: ModelContainer
     let modelContext: ModelContext
     private let encryptionKey: SymmetricKey
     
-    @Published var currentChat: Chat?
-    @Published var chats: [Chat] = []
-    @Published var error: Error?
+    var currentChat: Chat?
+    var chats: [Chat] = []
+    var error: Error?
     
     init() throws {
         // Generate or retrieve encryption key

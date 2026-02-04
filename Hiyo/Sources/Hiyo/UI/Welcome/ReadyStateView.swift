@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ReadyStateView: View {
-    @ObservedObject var provider: MLXProvider
+    var provider: MLXProvider
     
     var body: some View {
         VStack(spacing: 20) {
@@ -77,7 +77,7 @@ struct ReadyStateView: View {
                     .foregroundStyle(.secondary)
                     
                     Button("Start New Conversation") {
-                        NotificationCenter.default.post(name: .hiyoNewConversation, object: nil)
+                        NotificationCenter.default.post(name: .newConversation, object: nil)
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)

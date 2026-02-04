@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import Combine
+import Observation
 
 // MARK: - UserDefaults Keys
 
@@ -19,32 +19,33 @@ enum DefaultsKey {
 // MARK: - HiyoState
 
 @MainActor
-class HiyoState: ObservableObject {
+@Observable
+class HiyoState {
     // MARK: - UI State
 
-    @Published var selectedModel: String {
+    var selectedModel: String {
         didSet {
             UserDefaults.standard.set(selectedModel, forKey: DefaultsKey.selectedModel)
         }
     }
 
-    @Published var isSidebarVisible: Bool = true
+    var isSidebarVisible: Bool = true
 
     // MARK: - MLX Performance Metrics
 
-    @Published var gpuUsage: Double = 0.0
-    @Published var memoryUsage: Double = 0.0
-    @Published var isGenerating: Bool = false
+    var gpuUsage: Double = 0.0
+    var memoryUsage: Double = 0.0
+    var isGenerating: Bool = false
 
     // MARK: - User Preferences
 
-    @Published var temperature: Double {
+    var temperature: Double {
         didSet {
             UserDefaults.standard.set(temperature, forKey: DefaultsKey.temperature)
         }
     }
 
-    @Published var maxTokens: Int {
+    var maxTokens: Int {
         didSet {
             UserDefaults.standard.set(maxTokens, forKey: DefaultsKey.maxTokens)
         }
