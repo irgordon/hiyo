@@ -29,6 +29,8 @@ final class ConversationListBenchmark {
                 let msg = Message(content: "Message \(j) content which is long enough to be interesting.", role: j % 2 == 0 ? .user : .assistant)
                 chat.messages.append(msg)
             }
+            // Ensure derived fields are populated
+            chat.updateDerivedFields()
             context.insert(chat)
         }
         try context.save()
@@ -62,28 +64,24 @@ final class ConversationListBenchmark {
         print("✅ Baseline (N+1 Access) completed in \(String(format: "%.4f", baselineDuration))s")
         print("   Processed \(totalMessages) messages total")
 
-        // 4. Measure Denormalized Access (Simulated Optimized)
-        // Since we haven't implemented the fields yet, we'll simulate accessing a direct property
-        // by accessing the title (which is already loaded) and assuming O(1) access.
-
-        print("⏱️  Measuring Denormalized Access (Simulated Optimized)...")
+        // 4. Measure Denormalized Access (Optimized)
+        print("⏱️  Measuring Denormalized Access (Optimized)...")
         let optimizedStart = Date()
 
-        var totalTitleLength = 0
-        var totalSimulatedCount = 0
+        var totalCachedPreviewLength = 0
+        var totalCachedCount = 0
 
         for chat in chats {
-            // Simulate accessing denormalized fields
-            // In the real optimization, we'd access chat.lastMessagePreview and chat.messageCountCache
-            let preview = chat.title // Placeholder for lastMessagePreview
-            let count = 50 // Placeholder for messageCountCache
+            // Accessing denormalized fields
+            let preview = chat.lastMessagePreview ?? "No messages"
+            let count = chat.messageCountCache
 
-            totalTitleLength += preview.count
-            totalSimulatedCount += count
+            totalCachedPreviewLength += preview.count
+            totalCachedCount += count
         }
 
         let optimizedDuration = Date().timeIntervalSince(optimizedStart)
-        print("✅ Optimized (Simulated) completed in \(String(format: "%.4f", optimizedDuration))s")
+        print("✅ Optimized completed in \(String(format: "%.4f", optimizedDuration))s")
 
         let improvement = baselineDuration / optimizedDuration
         print("🚀 Projected Speedup: \(String(format: "%.1fx", improvement))")

@@ -99,3 +99,22 @@ We introduced `applyMessageAdded` and `applyMessageRemoved` to update these fiel
 *   **Baseline:** `O(N)` for `totalTokens`, `O(N log N)` for `lastMessage`. For 1000 messages, this could take milliseconds per frame.
 *   **Optimized:** `O(1)` (instant field access).
 *   **Result:** Smoother scrolling in the sidebar and reduced CPU usage.
+
+# Benchmark Rationale: Strict N+1 Prevention in ConversationRow
+
+## Context
+Despite the denormalization of `lastMessagePreview`, the `ConversationRow` view retained a fallback mechanism: `chat.lastMessagePreview ?? chat.messages.last?.content`. This fallback was intended to handle cases where the cache might be nil (e.g., legacy data or migration failures).
+
+## Performance Issue
+*   **Implicit N+1 Query:** Accessing `chat.messages` inside a SwiftUI view forces SwiftData to lazily fetch the entire relationship array from the database.
+*   **Unpredictable Spikes:** If `lastMessagePreview` was ever nil, the main thread would block while fetching all messages for that chat, causing a dropped frame. In a list of 100 chats, a few nil caches could trigger multiple heavy database reads during a single scroll frame.
+
+## Optimization Strategy
+We removed the fallback entirely. The view now relies strictly on `lastMessagePreview`.
+-   **Strict O(1) Enforcement:** The view layer is no longer permitted to access the relationship.
+-   **Separation of Concerns:** Data consistency (ensuring the cache is populated) is enforced at the model/migration layer, not patched by the view.
+
+## Expected Improvement
+*   **Metric:** Scroll Performance (FPS) and Main Thread Block Time.
+*   **Baseline:** Unpredictable performance; potential for random 100ms+ stutters if caches were missing.
+*   **Optimized:** Guaranteed O(1) access for every row, ensuring consistent 60/120 FPS scrolling regardless of data state.

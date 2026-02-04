@@ -22,7 +22,7 @@ struct ConversationRow: View {
     }
     
     private var messagePreview: String {
-        chat.lastMessagePreview ?? chat.messages.last?.content ?? "No messages"
+        chat.lastMessagePreview ?? "No messages"
     }
     
     var body: some View {

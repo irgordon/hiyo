@@ -20,6 +20,7 @@ All notable changes to this project will be documented in this file.
 - Removed N+1 database save calls during token generation, moving persistence to end-of-stream to significantly reduce I/O overhead.
 - Solved N+1 query issue in conversation list by denormalizing `lastMessagePreview` and `messageCount` to the `Chat` model, reducing database fetches from O(N) to O(1) during list rendering.
 - Optimized `Chat.totalTokens` complexity from O(N) to O(1) by denormalizing token count into a cached field, updated incrementally on message changes.
+- Strictly enforced O(1) rendering in `ConversationRow` by removing the fallback to `chat.messages`, preventing accidental N+1 relationship fetches.
 
 ### Accessibility
 - Added accessibility labels and traits to conversation list items.
