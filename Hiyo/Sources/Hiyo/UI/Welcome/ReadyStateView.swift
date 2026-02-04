@@ -26,7 +26,7 @@ struct ReadyStateView: View {
                 
                 Image(systemName: "sparkles")
                     .font(.system(size: 44))
-                    .foregroundStyle(.accent)
+                    .foregroundStyle(Color.accentColor)
             }
             
             Text("Welcome to Hiyo")
@@ -101,10 +101,3 @@ struct ReadyStateView: View {
     }
 }
 
-extension String {
-    var displayName: String {
-        self.replacingOccurrences(of: "mlx-community/", with: "")
-            .replacingOccurrences(of: "-Instruct", with: "")
-            .replacingOccurrences(of: "-4bit", with: "")
-    }
-}

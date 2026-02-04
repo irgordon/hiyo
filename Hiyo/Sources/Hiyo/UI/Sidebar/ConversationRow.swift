@@ -35,7 +35,7 @@ struct ConversationRow: View {
                 
                 Image(systemName: iconName)
                     .font(.system(size: 14))
-                    .foregroundStyle(isSelected ? .accent : .secondary)
+                    .foregroundStyle(isSelected ? Color.accentColor : .secondary)
             }
             
             // Content
@@ -48,7 +48,7 @@ struct ConversationRow: View {
                 Text(messagePreview)
                     .font(.caption)
                     .lineLimit(1)
-                    .foregroundStyle(isSelected ? .secondary : .secondary.opacity(0.8))
+                    .foregroundStyle(isSelected ? Color.secondary : Color.secondary.opacity(0.8))
             }
             
             Spacer()

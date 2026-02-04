@@ -15,19 +15,19 @@ struct LoadingStateView: View {
             // Animated loading indicator
             ZStack {
                 Circle()
-                    .stroke(.accent.opacity(0.2), lineWidth: 4)
+                    .stroke(Color.accentColor.opacity(0.2), lineWidth: 4)
                     .frame(width: 80, height: 80)
                 
                 Circle()
                     .trim(from: 0, to: provider.loadingProgress)
-                    .stroke(.accent, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                    .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 4, lineCap: .round))
                     .frame(width: 80, height: 80)
                     .rotationEffect(.degrees(-90))
                     .animation(.easeInOut(duration: 0.3), value: provider.loadingProgress)
                 
                 Image(systemName: "arrow.down")
                     .font(.system(size: 28))
-                    .foregroundStyle(.accent)
+                    .foregroundStyle(Color.accentColor)
             }
             
             VStack(spacing: 8) {

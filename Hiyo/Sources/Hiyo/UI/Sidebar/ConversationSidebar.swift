@@ -18,6 +18,7 @@ struct ConversationSidebar: View {
     @State private var showingDeleteConfirmation = false
     
     @State private var cancellables = Set<AnyCancellable>()
+    @State private var debounceTask: Task<Void, Never>?
     
     // Derived state: no duplication, no stale values
     private var filteredChats: [Chat] {
@@ -67,7 +68,9 @@ struct ConversationSidebar: View {
             statusBar
         }
         .background(.sidebarBackground)
-        .onAppear(perform: setupDebounce)
+        .onChange(of: searchText) { newValue in
+            debounceSearch(newValue)
+        }
         .alert("Delete Conversation?", isPresented: $showingDeleteConfirmation, presenting: chatToDelete) { chat in
             Button("Cancel", role: .cancel) { }
             Button("Delete", role: .destructive) {
@@ -114,7 +117,7 @@ private extension ConversationSidebar {
             
             HStack(spacing: 8) {
                 Image(systemName: provider.isAvailable ? "cpu.fill" : "exclamationmark.triangle")
-                    .foregroundStyle(provider.isAvailable ? .accent : .orange)
+                    .foregroundStyle(provider.isAvailable ? Color.accentColor : .orange)
                     .imageScale(.small)
                 
                 VStack(alignment: .leading, spacing: 2) {
@@ -149,16 +152,18 @@ private extension ConversationSidebar {
         .background(.ultraThinMaterial)
     }
     
-    // MARK: - Debounce Setup
+    // MARK: - Search
     
-    func setupDebounce() {
-        $searchText
-            .debounce(for: .milliseconds(250), scheduler: RunLoop.main)
-            .removeDuplicates()
-            .sink { value in
-                debouncedSearchText = value
+    private func debounceSearch(_ text: String) {
+        debounceTask?.cancel()
+        debounceTask = Task {
+            try? await Task.sleep(nanoseconds: 250_000_000) // 250ms
+            if !Task.isCancelled {
+                await MainActor.run {
+                    debouncedSearchText = text
+                }
             }
-            .store(in: &cancellables)
+        }
     }
     
     // MARK: - Actions
@@ -187,10 +192,3 @@ private extension ConversationSidebar {
     }
 }
 
-extension String {
-    var displayName: String {
-        self.replacingOccurrences(of: "mlx-community/", with: "")
-            .replacingOccurrences(of: "-Instruct", with: "")
-            .replacingOccurrences(of: "-4bit", with: "")
-    }
-}

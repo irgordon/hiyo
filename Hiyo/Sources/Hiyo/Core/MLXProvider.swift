@@ -49,13 +49,25 @@ final class MLXProvider: ObservableObject {
         // Check cancellation
         try Task.checkCancellation()
         
-        // Get secure cache directory
-        let cacheDir = try SecureMLX.secureCacheDirectory()
+        // Check for local override (sideloaded model)
+        // We append the model ID (replacing / with _) to avoid collisions
+        let safeModelName = sanitizedId.replacingOccurrences(of: "/", with: "_")
+        let secureCacheDir = try SecureMLX.secureCacheDirectory()
+        let localModelDir = secureCacheDir.appendingPathComponent(safeModelName)
+
+        let overrideURL: URL?
+        if FileManager.default.fileExists(atPath: localModelDir.appendingPathComponent("config.json").path) {
+            overrideURL = localModelDir
+            SecurityLogger.logPublic(.modelLoaded, details: "Using local override for \(sanitizedId)")
+        } else {
+            // Fallback to Hub download (managed by swift-transformers in standard cache)
+            overrideURL = nil
+        }
 
         // Load with progress
         let config = ModelConfiguration(
             id: sanitizedId,
-            overrideDirectory: cacheDir
+            overrideDirectory: overrideURL
         )
         
         loadTask = Task {
@@ -94,7 +106,7 @@ final class MLXProvider: ObservableObject {
     // MARK: - Generation
     
     func generate(
-        messages: [Message],
+        messages: [LLMMessage],
         parameters: GenerationParameters = .default
     ) async throws -> AsyncStream<String> {
         guard let container = modelContainer else {
@@ -169,7 +181,7 @@ struct LLMGenerator {
     let tokenizer: Tokenizer
     let parameters: GenerationParameters
 
-    static func formatPrompt(messages: [Message], tokenizer: Tokenizer) -> String {
+    static func formatPrompt(messages: [LLMMessage], tokenizer: Tokenizer) -> String {
         // Simple chat format - adjust based on model
         let lines = messages.map { message -> String in
             switch message.role {
@@ -293,7 +305,7 @@ struct GenerationResponse {
     let token: Int
 }
 
-struct Message {
+struct LLMMessage {
     let role: String
     let content: String
 }
