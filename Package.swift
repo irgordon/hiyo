@@ -38,14 +38,15 @@ let package = Package(
                 // .enableExperimentalFeature("StrictConcurrency")
             ]
         ),
-        .testTarget(
-            name: "HiyoTests",
-            dependencies: ["Hiyo"],
-            path: "Hiyo/Tests/HiyoTests",
-            resources: [
-                // Allows test fixtures, sample JSON, etc.
-                .process("Resources")
-            ]
-        )
+        // Test target commented out as the directory structure is missing in the repository
+        // .testTarget(
+        //     name: "HiyoTests",
+        //     dependencies: ["Hiyo"],
+        //     path: "Hiyo/Tests/HiyoTests",
+        //     resources: [
+        //         // Allows test fixtures, sample JSON, etc.
+        //         .process("Resources")
+        //     ]
+        // )
     ]
 )
