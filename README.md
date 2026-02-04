@@ -256,4 +256,4 @@ git push origin feature/amazing-feature
 
 ## 🙏 Acknowledgments
 
-- **[MLX](https://github.com/ml
+- **[MLX Swift](https://github.com/ml-explore/mlx-swift/)
