@@ -70,6 +70,7 @@ enum SecurityLogger {
         case modelLoaded = "MODEL_LOADED"
         case modelUnloaded = "MODEL_UNLOADED"
         case modelLoadFailed = "MODEL_LOAD_FAILED"
+        case generationCompleted = "GENERATION_COMPLETED"
         
         // Data
         case exportOperation = "EXPORT_OPERATION"

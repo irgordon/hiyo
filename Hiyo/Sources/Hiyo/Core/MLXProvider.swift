@@ -111,19 +111,15 @@ final class MLXProvider: ObservableObject {
                 do {
                     let stream = try await container.perform { [weak self] model, tokenizer in
                         // Format prompt
-                        let prompt = self?.formatPrompt(messages: messages, tokenizer: tokenizer) ?? ""
+                        let prompt = LLMGenerator.formatPrompt(messages: messages, tokenizer: tokenizer)
                         
                         // Check limits
                         let inputIds = tokenizer.encode(text: prompt)
                         try await ResourceGuard.shared.allocateTokens(inputIds.count)
                         
                         // Stream generation
-                        for response in streamGenerate(
-                            model: model,
-                            tokenizer: tokenizer,
-                            prompt: inputIds,
-                            parameters: parameters
-                        ) {
+                        let generator = LLMGenerator(model: model, tokenizer: tokenizer, parameters: parameters)
+                        for await response in generator.generate(prompt: inputIds) {
                             // Check cancellation
                             guard !Task.isCancelled else { break }
                             
@@ -139,7 +135,7 @@ final class MLXProvider: ObservableObject {
                         
                         // Log stats
                         let latency = Date().timeIntervalSince(startTime) * 1000
-                        SecurityLogger.logPublic(.modelLoaded, details: "Generated \(tokenCount) tokens in \(Int(latency))ms")
+                        SecurityLogger.logPublic(.generationCompleted, details: "Generated \(tokenCount) tokens in \(Int(latency))ms")
                     }
                     
                     _ = try await stream
@@ -156,7 +152,23 @@ final class MLXProvider: ObservableObject {
     
     // MARK: - Private Methods
     
-    private func formatPrompt(messages: [Message], tokenizer: Tokenizer) -> String {
+    private func updateMemoryStats() async {
+        let active = Double(MLX.GPU.activeMemory) / 1_073_741_824.0 // GB
+        await MainActor.run {
+            self.memoryUsage = active
+        }
+    }
+}
+
+// MARK: - Generation Logic
+
+/// Helper struct to handle model generation logic outside of MainActor
+struct LLMGenerator {
+    let model: LLMModel
+    let tokenizer: Tokenizer
+    let parameters: GenerationParameters
+
+    static func formatPrompt(messages: [Message], tokenizer: Tokenizer) -> String {
         // Simple chat format - adjust based on model
         let lines = messages.map { message -> String in
             switch message.role {
@@ -174,24 +186,43 @@ final class MLXProvider: ObservableObject {
         let joined = lines.joined(separator: "\n")
         return joined.isEmpty ? "Assistant:" : joined + "\nAssistant:"
     }
-    
-    private func streamGenerate(
-        model: LLMModel,
-        tokenizer: Tokenizer,
-        prompt: [Int],
-        parameters: GenerationParameters
-    ) -> AsyncStream<GenerationResponse> {
+
+    func generate(prompt: [Int]) -> AsyncStream<GenerationResponse> {
         AsyncStream { continuation in
             Task {
-                var inputIds = prompt
+                // Truncate input to security limit
+                let maxContext = SecurityLimits.maxContextTokens
+                let truncatedPrompt: [Int]
+                if prompt.count > maxContext {
+                    truncatedPrompt = Array(prompt.suffix(maxContext))
+                    print("Warning: Prompt truncated to \(maxContext) tokens")
+                } else {
+                    truncatedPrompt = prompt
+                }
+
+                var inputIds = truncatedPrompt
+                var cache: [Any]? = nil
+
+                // Prefill
+                if inputIds.count > 1 {
+                    let inputMLX = MLXArray(inputIds.dropLast()).reshaped([1, -1])
+                    let (_, newCache) = model(inputMLX, cache: nil)
+                    cache = newCache
+
+                    // The last token is the first input for generation loop
+                    inputIds = [inputIds.last!]
+                }
+
                 let maxTokens = min(parameters.maxTokens, 4096)
                 
                 for _ in 0..<maxTokens {
                     guard !Task.isCancelled else { break }
                     
-                    // Forward pass
+                    // Forward pass with cache
                     let inputMLX = MLXArray(inputIds).reshaped([1, -1])
-                    let logits = model(inputMLX)
+                    let (logits, newCache) = model(inputMLX, cache: cache)
+                    cache = newCache
+
                     let nextLogits = logits[0..., -1, 0...]
                     
                     // Sample
@@ -206,7 +237,7 @@ final class MLXProvider: ObservableObject {
                         continuation.yield(GenerationResponse(text: text, token: nextToken))
                     }
                     
-                    inputIds.append(nextToken)
+                    inputIds = [nextToken]
                     
                     // Check for EOS
                     if nextToken == tokenizer.eosTokenId {
@@ -228,21 +259,19 @@ final class MLXProvider: ObservableObject {
         
         if topP < 1.0 {
             let probs = softMax(processed, axis: -1)
-            let sorted = argSort(probs, axis: -1, descending: true)
-            let sortedProbs = probs[sorted]
-            let cumsum = cumsum(sortedProbs, axis: -1)
-            let mask = cumsum > topP
-            processed = processed.at(sorted[mask]).set(-Float.infinity)
+            let sortedIndices = argSort(probs, axis: -1, descending: true)
+            let sortedProbs = probs[sortedIndices]
+            let cumsumProbs = cumsum(sortedProbs, axis: -1)
+
+            // Mask where cumulative probability > topP, but keep at least one token.
+            // We want to mask where (cumsum - prob) > topP.
+            let maskToRemove = (cumsumProbs - sortedProbs) > topP
+
+            // Apply mask
+            processed = processed.at(sortedIndices[maskToRemove]).set(-Float.infinity)
         }
         
         return categorical(processed)
-    }
-    
-    private func updateMemoryStats() async {
-        let active = Double(MLX.GPU.activeMemory) / 1_073_741_824.0 // GB
-        await MainActor.run {
-            self.memoryUsage = active
-        }
     }
 }
 

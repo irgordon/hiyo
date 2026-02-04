@@ -44,3 +44,31 @@ This moves the query execution from the "Render Loop" to the "Event Loop".
 *   **Baseline:** Proportional to UI framerate/interaction rate (potentially 60+ calls/sec during animations).
 *   **Optimized:** Proportional to user typing speed (e.g., 5-10 calls/sec max) or data updates (rare).
 *   **Result:** Net reduction in main thread CPU usage and context lock contention.
+
+# Benchmark Rationale: KV-Cache and Generation Optimization
+
+## Context
+The previous implementation of `streamGenerate` in `MLXProvider` performed a full forward pass on the entire sequence of tokens for every new token generated.
+- `inputIds` grew by 1 token each step.
+- `model(inputMLX)` was called with the full `inputIds` array.
+
+## Performance Issue
+*   **Quadratic Complexity (O(N^2)):** In Transformer models, the attention mechanism scales with the square of the sequence length if computed naively for the whole sequence. Even if optimized, re-computing the Key and Value matrices for all previous tokens at every step is redundant.
+*   **Redundant Computation:** For a sequence of length N, the model processed `1 + 2 + 3 + ... + N` tokens, totaling `N(N+1)/2` token passes.
+
+## Optimization Strategy
+We implemented the Key-Value (KV) Cache pattern:
+1.  **Prefill:** We process the initial prompt once to generate the initial cache state.
+2.  **Incremental Generation:** For each subsequent step, we pass only the *last generated token* and the *cached state* to the model.
+3.  **State Update:** The model returns the new token logits and an updated cache (containing the new token's K/V data appended to the history).
+
+## Expected Improvement
+*   **Metric:** Time per Token (Latency).
+*   **Baseline:** Linearly increasing latency per token as the sequence grows (O(N) cost per step -> O(N^2) total).
+*   **Optimized:** Constant (or near-constant) latency per token (O(1) cost per step -> O(N) total).
+*   **Result:** Significant speedup for long generations, reduced memory bandwidth usage, and lower CPU/GPU utilization per token.
+
+## Additional Fixes
+*   **Actor Isolation:** Generation logic was moved from `@MainActor` to a detached struct, ensuring heavy computation doesn't block the UI thread.
+*   **Nucleus Sampling:** Fixed logic where the highest probability token could be masked if it alone exceeded `topP`.
+*   **Input Truncation:** Explicitly limiting input size prevents potential memory exhaustion attacks.

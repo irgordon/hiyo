@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Performance
+- Optimized LLM generation complexity from O(N^2) to O(N) using KV-Caching, ensuring constant-time per-token latency.
+- Offloaded generation logic from `@MainActor` to prevent UI blocking during inference.
+- Fixed Nucleus Sampling (top-p) implementation to correctly handle high-probability tokens.
 - Eliminated redundant database queries in conversation list by caching search results, preventing O(1) database fetch on every UI render frame.
 - Offloaded `duplicateChat` operation to a detached background task to prevent main thread blocking when copying large conversations.
 - Moved secure deletion operations to a background thread to prevent UI freezing during cache clearing.
