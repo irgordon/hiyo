@@ -75,23 +75,46 @@ final class HiyoStore: ObservableObject {
     }
     
     func duplicateChat(_ chat: Chat) {
-        let newChat = Chat(title: chat.title + " Copy", modelIdentifier: chat.modelIdentifier)
+        let chatID = chat.persistentModelID
+        let container = modelContainer
         
-        for message in chat.messages {
-            let newMessage = Message(content: message.content, role: message.role)
-            newMessage.tokensUsed = message.tokensUsed
-            newMessage.latencyMs = message.latencyMs
-            newChat.messages.append(newMessage)
-        }
-        
-        modelContext.insert(newChat)
-        
-        do {
-            try modelContext.save()
-            chats.insert(newChat, at: 0)
-            currentChat = newChat
-        } catch {
-            self.error = error
+        Task.detached {
+            let context = ModelContext(container)
+
+            // Fetch original chat in background context
+            guard let originalChat = context.model(for: chatID) as? Chat else { return }
+
+            let newChat = Chat(title: originalChat.title + " Copy", modelIdentifier: originalChat.modelIdentifier)
+
+            // Sort messages to guarantee order
+            let sortedMessages = originalChat.messages.sorted { $0.timestamp < $1.timestamp }
+
+            for message in sortedMessages {
+                let newMessage = Message(content: message.content, role: message.role)
+                newMessage.tokensUsed = message.tokensUsed
+                newMessage.latencyMs = message.latencyMs
+                newChat.messages.append(newMessage)
+            }
+
+            context.insert(newChat)
+
+            do {
+                try context.save()
+                let newChatID = newChat.persistentModelID
+
+                await MainActor.run { [weak self] in
+                    guard let self = self else { return }
+                    // Fetch the new chat on the main context
+                    if let mainThreadNewChat = self.modelContext.model(for: newChatID) as? Chat {
+                        self.chats.insert(mainThreadNewChat, at: 0)
+                        self.currentChat = mainThreadNewChat
+                    }
+                }
+            } catch {
+                await MainActor.run { [weak self] in
+                    self?.error = error
+                }
+            }
         }
     }
     
