@@ -23,6 +23,7 @@ final class Chat {
     // Denormalized fields for performance (N+1 avoidance)
     var lastMessagePreview: String?
     var messageCountCache: Int = 0
+    var totalTokensCache: Int = 0
 
     init(title: String, modelIdentifier: String) {
         self.id = UUID()
@@ -43,11 +44,16 @@ final class Chat {
     }
     
     var lastMessage: Message? {
+        // Warning: O(N log N) operation. Use lastMessagePreview for lists.
         messages.sorted { $0.timestamp < $1.timestamp }.last
     }
     
     var totalTokens: Int {
-        messages.compactMap { $0.tokensUsed }.reduce(0, +)
+        // Fallback to relationship if cache is 0 but messages exist
+        if totalTokensCache == 0 && !messages.isEmpty {
+            return messages.compactMap { $0.tokensUsed }.reduce(0, +)
+        }
+        return totalTokensCache
     }
     
     var durationDescription: String {
@@ -69,6 +75,55 @@ final class Chat {
     func updateModifiedDate() {
         modifiedAt = Date()
     }
+
+    /// Recalculates all denormalized fields from the messages array.
+    /// - Note: This is an O(N log N) operation due to sorting.
+    func updateDerivedFields() {
+        let sortedMessages = messages.sorted { $0.timestamp < $1.timestamp }
+
+        messageCountCache = sortedMessages.count
+        lastMessagePreview = sortedMessages.last?.preview
+        totalTokensCache = sortedMessages.compactMap { $0.tokensUsed }.reduce(0, +)
+    }
+
+    /// Updates denormalized fields when a message is added.
+    /// - Parameter message: The message being added.
+    func applyMessageAdded(_ message: Message) {
+        // Safety: If cache is uninitialized (0) but we have history, perform full update
+        // to avoid corrupting the token count (making it non-zero but incomplete).
+        if totalTokensCache == 0 && messages.count > 1 {
+            updateDerivedFields()
+            return
+        }
+
+        messageCountCache += 1
+        // Assumption: Added message is the latest
+        lastMessagePreview = message.preview
+        if let tokens = message.tokensUsed {
+            totalTokensCache += tokens
+        }
+    }
+
+    /// Updates denormalized fields when a message is removed.
+    /// - Parameter message: The message being removed.
+    func applyMessageRemoved(_ message: Message) {
+        messageCountCache = max(0, messageCountCache - 1)
+        if let tokens = message.tokensUsed {
+            totalTokensCache = max(0, totalTokensCache - tokens)
+        }
+
+        // Only re-scan if we potentially removed the last message (content matches preview)
+        if message.preview == lastMessagePreview {
+             // Fallback to full scan to find the new last message
+             let sorted = messages.sorted { $0.timestamp < $1.timestamp }
+             lastMessagePreview = sorted.last?.preview
+        }
+
+        if messageCountCache == 0 {
+            lastMessagePreview = nil
+            totalTokensCache = 0
+        }
+    }
 }
 
 // MARK: - Codable Support
@@ -76,7 +131,7 @@ final class Chat {
 extension Chat: Codable {
     enum CodingKeys: String, CodingKey {
         case id, title, createdAt, modifiedAt, messages, modelIdentifier
-        case lastMessagePreview, messageCountCache
+        case lastMessagePreview, messageCountCache, totalTokensCache
     }
     
     convenience init(from decoder: Decoder) throws {
@@ -93,6 +148,7 @@ extension Chat: Codable {
 
         self.lastMessagePreview = try container.decodeIfPresent(String.self, forKey: .lastMessagePreview)
         self.messageCountCache = try container.decodeIfPresent(Int.self, forKey: .messageCountCache) ?? 0
+        self.totalTokensCache = try container.decodeIfPresent(Int.self, forKey: .totalTokensCache) ?? 0
     }
     
     func encode(to encoder: Encoder) throws {
@@ -105,5 +161,6 @@ extension Chat: Codable {
         try container.encode(modelIdentifier, forKey: .modelIdentifier)
         try container.encode(lastMessagePreview, forKey: .lastMessagePreview)
         try container.encode(messageCountCache, forKey: .messageCountCache)
+        try container.encode(totalTokensCache, forKey: .totalTokensCache)
     }
 }
