@@ -72,3 +72,30 @@ We implemented the Key-Value (KV) Cache pattern:
 *   **Actor Isolation:** Generation logic was moved from `@MainActor` to a detached struct, ensuring heavy computation doesn't block the UI thread.
 *   **Nucleus Sampling:** Fixed logic where the highest probability token could be masked if it alone exceeded `topP`.
 *   **Input Truncation:** Explicitly limiting input size prevents potential memory exhaustion attacks.
+
+# Benchmark Rationale: Chat Model Denormalization
+
+## Context
+The `Chat` model calculated `totalTokens` and `lastMessage` via computed properties.
+- `totalTokens`: Iterated over all associated `Message` objects to sum their usage (`O(N)`).
+- `lastMessage`: Sorted all messages by timestamp to find the last one (`O(N log N)`).
+
+These properties were accessed frequently by the UI (e.g., `ConversationRow` in the sidebar), causing significant performance degradation for chats with long histories.
+
+## Performance Issue
+*   **O(N) / O(N log N) Access:** Accessing a single property triggered a full traversal or sort of the relationship graph.
+*   **Main Thread Blocking:** These computations happened on the main thread during UI rendering.
+
+## Optimization Strategy
+We denormalized these fields onto the `Chat` model:
+- `totalTokensCache`: Maintained incrementally.
+- `lastMessagePreview`: Already existed, but we now rely on it exclusively for lists.
+- `messageCountCache`: Used to avoid counting the array.
+
+We introduced `applyMessageAdded` and `applyMessageRemoved` to update these fields incrementally (O(1)) at the point of mutation.
+
+## Expected Improvement
+*   **Metric:** Property Access Time.
+*   **Baseline:** `O(N)` for `totalTokens`, `O(N log N)` for `lastMessage`. For 1000 messages, this could take milliseconds per frame.
+*   **Optimized:** `O(1)` (instant field access).
+*   **Result:** Smoother scrolling in the sidebar and reduced CPU usage.

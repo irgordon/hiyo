@@ -98,16 +98,19 @@ final class HiyoStore: ObservableObject {
             // Sort messages to guarantee order
             let sortedMessages = originalChat.messages.sorted { $0.timestamp < $1.timestamp }
 
+            var totalTokens = 0
             for message in sortedMessages {
                 let newMessage = Message(content: message.content, role: message.role)
                 newMessage.tokensUsed = message.tokensUsed
                 newMessage.latencyMs = message.latencyMs
                 newChat.messages.append(newMessage)
+                if let t = message.tokensUsed { totalTokens += t }
             }
 
             // Update denormalized fields
             newChat.messageCountCache = sortedMessages.count
-            newChat.lastMessagePreview = sortedMessages.last?.content
+            newChat.lastMessagePreview = sortedMessages.last?.preview
+            newChat.totalTokensCache = totalTokens
 
             context.insert(newChat)
 
@@ -166,8 +169,7 @@ final class HiyoStore: ObservableObject {
         chat.modifiedAt = Date()
         
         // Update denormalized fields
-        chat.lastMessagePreview = sanitizedContent
-        chat.messageCountCache += 1
+        chat.applyMessageAdded(message)
 
         do {
             try modelContext.save()
@@ -183,8 +185,7 @@ final class HiyoStore: ObservableObject {
         chat.modifiedAt = Date()
         
         // Update denormalized fields
-        chat.lastMessagePreview = nil
-        chat.messageCountCache = 0
+        chat.updateDerivedFields()
 
         do {
             try modelContext.save()
@@ -256,10 +257,7 @@ final class HiyoStore: ObservableObject {
             }
             
             // Update denormalized fields
-            newChat.messageCountCache = chatDTO.messages.count
-            // Assuming messages in DTO might not be sorted, we find the latest
-            let lastMsg = chatDTO.messages.max(by: { $0.timestamp < $1.timestamp })
-            newChat.lastMessagePreview = lastMsg?.content
+            newChat.updateDerivedFields()
 
             modelContext.insert(newChat)
             newChats.append(newChat)
@@ -316,8 +314,9 @@ final class HiyoStore: ObservableObject {
 
     private static func performMigration(container: ModelContainer) async throws {
         let context = ModelContext(container)
-        // Optimization: Only fetch chats that might need migration (cache is 0)
-        let predicate = #Predicate<Chat> { $0.messageCountCache == 0 }
+        // Optimization: Fetch chats that need migration (missing cache or tokens)
+        // Since totalTokensCache is new, we check if it is 0.
+        let predicate = #Predicate<Chat> { $0.totalTokensCache == 0 }
         let descriptor = FetchDescriptor<Chat>(predicate: predicate)
         let chats = try context.fetch(descriptor)
 
@@ -325,9 +324,7 @@ final class HiyoStore: ObservableObject {
         for chat in chats {
             // Check if truly unmigrated (has messages)
             if !chat.messages.isEmpty {
-                chat.messageCountCache = chat.messages.count
-                // Sort to find the true last message
-                chat.lastMessagePreview = chat.messages.sorted { $0.timestamp < $1.timestamp }.last?.content
+                chat.updateDerivedFields()
                 modified = true
             }
         }
