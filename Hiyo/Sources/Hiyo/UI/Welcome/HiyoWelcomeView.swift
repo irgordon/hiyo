@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct HiyoWelcomeView: View {
-    @ObservedObject var provider: MLXProvider
+    var provider: MLXProvider
     
     var body: some View {
         VStack(spacing: 0) {

@@ -136,7 +136,7 @@ See `QUICK_START.md` for a fast setup guide.
 ### **SwiftUI**
 - Keep views small and composable  
 - Avoid heavy work in view builders  
-- Use `ObservableObject` + `@Published` for state  
+- Use `@Observable` macros for state management
 
 ### **Concurrency**
 - Prefer `async/await`  

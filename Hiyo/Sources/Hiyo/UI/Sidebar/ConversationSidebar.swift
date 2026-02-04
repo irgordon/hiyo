@@ -6,18 +6,15 @@
 //
 
 import SwiftUI
-import Combine
 
 struct ConversationSidebar: View {
-    @ObservedObject var store: HiyoStore
-    @ObservedObject var provider: MLXProvider
+    var store: HiyoStore
+    var provider: MLXProvider
     
     @State private var searchText = ""
     @State private var debouncedSearchText = ""
     @State private var chatToDelete: Chat?
     @State private var showingDeleteConfirmation = false
-    
-    @State private var cancellables = Set<AnyCancellable>()
     
     // Derived state: no duplication, no stale values
     private var filteredChats: [Chat] {
@@ -28,6 +25,8 @@ struct ConversationSidebar: View {
     }
     
     var body: some View {
+        @Bindable var store = store
+
         VStack(spacing: 0) {
             searchField
             
@@ -67,7 +66,12 @@ struct ConversationSidebar: View {
             statusBar
         }
         .background(.sidebarBackground)
-        .onAppear(perform: setupDebounce)
+        .task(id: searchText) {
+            do {
+                try await Task.sleep(for: .milliseconds(250))
+                debouncedSearchText = searchText
+            } catch {}
+        }
         .alert("Delete Conversation?", isPresented: $showingDeleteConfirmation, presenting: chatToDelete) { chat in
             Button("Cancel", role: .cancel) { }
             Button("Delete", role: .destructive) {
@@ -147,18 +151,6 @@ private extension ConversationSidebar {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(.ultraThinMaterial)
-    }
-    
-    // MARK: - Debounce Setup
-    
-    func setupDebounce() {
-        $searchText
-            .debounce(for: .milliseconds(250), scheduler: RunLoop.main)
-            .removeDuplicates()
-            .sink { value in
-                debouncedSearchText = value
-            }
-            .store(in: &cancellables)
     }
     
     // MARK: - Actions

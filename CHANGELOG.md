@@ -2,7 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [v1.0.0] - 2024-05-23
+
+### Refactor
+- Removed all dependencies on the Combine framework in favor of Swift Concurrency and the Observation framework.
+- Migrated global state management (`HiyoState`, `HiyoStore`, `MLXProvider`) to use the `@Observable` macro.
+- Replaced `ObservableObject` and `@Published` with standard Swift properties and observation tracking.
+- Updated `ConversationSidebar` to use structured concurrency (`.task`) for search debounce instead of Combine publishers.
+- Refactored `ContentView` to use `@Environment` and `@State` instead of `@EnvironmentObject` and `@StateObject`.
+- Replaced `NotificationCenter` publishers in views with asynchronous sequences iterated in `.task` modifiers.
+- Ensure all model controllers (`HiyoStore`, `MLXProvider`, `HiyoState`) remain `@MainActor` isolated for thread safety.
+- Updated `ConversationRow` to directly use the `Chat` model, simplifying data flow.
 
 ### Performance
 - Optimized LLM generation complexity from O(N^2) to O(N) using KV-Caching, ensuring constant-time per-token latency.

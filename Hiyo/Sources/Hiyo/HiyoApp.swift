@@ -20,7 +20,7 @@ enum DefaultsKey {
 @main
 struct HiyoApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @StateObject private var appState = HiyoState()
+    @State private var appState = HiyoState()
 
     init() {
         SecureMLX.configureSafeLimits()
@@ -32,7 +32,7 @@ struct HiyoApp: App {
         WindowGroup("Hiyo") {
             ContentView()
                 .frame(minWidth: 900, minHeight: 600)
-                .environmentObject(appState)
+                .environment(appState)
                 .background(WindowReader { window in
                     appDelegate.mainWindow = window
                 })
@@ -84,7 +84,7 @@ struct HiyoApp: App {
         Settings {
             MLXSettingsView()
                 .frame(minWidth: 600, minHeight: 500)
-                .environmentObject(appState)
+                .environment(appState)
         }
     }
 

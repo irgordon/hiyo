@@ -55,15 +55,16 @@ Global observable state shared across views.
 
 ```swift
 @MainActor
-class HiyoState: ObservableObject {
-    // Published properties
-    @Published var selectedModel: String
-    @Published var isSidebarVisible: Bool
-    @Published var gpuUsage: Double
-    @Published var memoryUsage: Double
-    @Published var isGenerating: Bool
+@Observable
+class HiyoState {
+    // Properties
+    var selectedModel: String
+    var isSidebarVisible: Bool
+    var gpuUsage: Double
+    var memoryUsage: Double
+    var isGenerating: Bool
     
-    // User preferences (backed by @AppStorage)
+    // User preferences (backed by UserDefaults)
     var temperature: Double
     var maxTokens: Int
     
@@ -83,12 +84,13 @@ Main data persistence layer with encryption.
 
 ```swift
 @MainActor
-final class HiyoStore: ObservableObject {
+@Observable
+final class HiyoStore {
     // Properties
     let modelContainer: ModelContainer
     let modelContext: ModelContext
-    @Published var currentChat: Chat?
-    @Published var chats: [Chat]
+    var currentChat: Chat?
+    var chats: [Chat]
     
     // Initialization
     init() throws  // Sets up encrypted SwiftData container
@@ -115,7 +117,7 @@ final class HiyoStore: ObservableObject {
 
 **Usage Example**:
 ```swift
-@StateObject private var store = try! HiyoStore()
+@State private var store = try! HiyoStore()
 
 // Create chat
 let chat = store.createChat(title: "My Chat", model: "mlx-community/Llama-3.2-3B")
@@ -344,13 +346,14 @@ Main interface to MLX framework for model loading and inference.
 
 ```swift
 @MainActor
-final class MLXProvider: ObservableObject {
-    // Published State
-    @Published var isAvailable: Bool
-    @Published var isLoading: Bool
-    @Published var loadingProgress: Double
-    @Published var currentModel: String
-    @Published var memoryUsage: Double
+@Observable
+final class MLXProvider {
+    // State
+    var isAvailable: Bool
+    var isLoading: Bool
+    var loadingProgress: Double
+    var currentModel: String
+    var memoryUsage: Double
     
     // Model Access
     var availableModels: [MLXModel]
@@ -569,9 +572,9 @@ Main three-column layout.
 
 ```swift
 struct ContentView: View {
-    @EnvironmentObject var appState: HiyoState
-    @StateObject private var store: HiyoStore
-    @StateObject private var provider: MLXProvider
+    @Environment(HiyoState.self) var appState
+    @State private var store: HiyoStore
+    @State private var provider: MLXProvider
     
     var body: some View  // NavigationSplitView with sidebar/chat/inspector
 }
@@ -588,8 +591,8 @@ Main conversation interface.
 ```swift
 struct ChatView: View {
     let chat: Chat
-    @ObservedObject var store: HiyoStore
-    @ObservedObject var provider: MLXProvider
+    var store: HiyoStore
+    var provider: MLXProvider
     
     @State private var inputText: String
     @State private var isGenerating: Bool
@@ -610,21 +613,21 @@ Welcome screen with state switching.
 
 ```swift
 struct HiyoWelcomeView: View {
-    @ObservedObject var provider: MLXProvider
+    var provider: MLXProvider
     
     var body: some View  // Switches between Ready/Loading/Setup states
 }
 
 struct ReadyStateView: View {
-    @ObservedObject var provider: MLXProvider
+    var provider: MLXProvider
 }
 
 struct LoadingStateView: View {
-    @ObservedObject var provider: MLXProvider
+    var provider: MLXProvider
 }
 
 struct SetupStateView: View {
-    @ObservedObject var provider: MLXProvider
+    var provider: MLXProvider
 }
 ```
 
@@ -640,7 +643,7 @@ struct SettingsView: View {
 }
 
 struct ModelsSettings: View {
-    @StateObject private var provider: MLXProvider
+    var provider: MLXProvider
 }
 
 struct PerformanceSettings: View {
