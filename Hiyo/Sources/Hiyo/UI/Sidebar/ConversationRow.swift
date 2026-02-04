@@ -3,12 +3,13 @@
 //  Hiyo
 //
 //  Individual conversation list item.
+//  Updated to use ChatSummary for zero‑fault list performance.
 //
 
 import SwiftUI
 
 struct ConversationRow: View {
-    let chat: Chat
+    let chat: ChatSummary
     let isSelected: Bool
     
     private var iconName: String {
@@ -21,12 +22,14 @@ struct ConversationRow: View {
         return "bubble.left.fill"
     }
     
+    /// Uses denormalized preview — never touches relationships.
     private var messagePreview: String {
-        chat.lastMessagePreview ?? chat.messages.last?.content ?? "No messages"
+        chat.lastMessagePreview ?? "No messages"
     }
     
     var body: some View {
         HStack(spacing: 12) {
+            
             // Model icon
             ZStack {
                 Circle()
@@ -35,7 +38,7 @@ struct ConversationRow: View {
                 
                 Image(systemName: iconName)
                     .font(.system(size: 14))
-                    .foregroundStyle(isSelected ? Color.accentColor : .secondary)
+                    .foregroundStyle(isSelected ? .accentColor : .secondary)
             }
             
             // Content
@@ -43,17 +46,16 @@ struct ConversationRow: View {
                 Text(chat.title)
                     .font(.system(size: 13, weight: .medium))
                     .lineLimit(1)
-                    .foregroundStyle(isSelected ? .primary : .primary)
                 
                 Text(messagePreview)
                     .font(.caption)
                     .lineLimit(1)
-                    .foregroundStyle(isSelected ? .secondary : .secondary.opacity(0.8))
+                    .foregroundStyle(.secondary)
             }
             
             Spacer()
             
-            // Timestamp
+            // Timestamp + count
             VStack(alignment: .trailing, spacing: 2) {
                 Text(chat.modifiedAt, style: .relative)
                     .font(.caption2)
