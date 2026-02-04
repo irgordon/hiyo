@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Performance
+- Eliminated redundant database queries in conversation list by caching search results, preventing O(1) database fetch on every UI render frame.
 - Offloaded `duplicateChat` operation to a detached background task to prevent main thread blocking when copying large conversations.
 - Moved secure deletion operations to a background thread to prevent UI freezing during cache clearing.
 - Eliminated repeated full database fetches in `HiyoStore` by manually updating the chat list.

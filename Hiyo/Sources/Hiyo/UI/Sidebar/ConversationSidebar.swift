@@ -13,9 +13,19 @@ struct ConversationSidebar: View {
     @State private var searchText = ""
     @State private var showingDeleteConfirmation = false
     @State private var chatToDelete: Chat?
+    @State private var searchResults: [Chat] = []
     
     var filteredChats: [Chat] {
-        store.searchChats(query: searchText)
+        if searchText.isEmpty {
+            return store.chats
+        }
+        return searchResults
+    }
+
+    private func updateSearch() {
+        if !searchText.isEmpty {
+            searchResults = store.searchChats(query: searchText)
+        }
     }
     
     var body: some View {
@@ -115,6 +125,8 @@ struct ConversationSidebar: View {
             .background(.ultraThinMaterial)
         }
         .background(.sidebarBackground)
+        .onChange(of: searchText) { _, _ in updateSearch() }
+        .onChange(of: store.chats) { _, _ in updateSearch() }
         .alert("Delete Conversation?", isPresented: $showingDeleteConfirmation, presenting: chatToDelete) { chat in
             Button("Cancel", role: .cancel) { }
             Button("Delete", role: .destructive) {
