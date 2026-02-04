@@ -49,13 +49,25 @@ final class MLXProvider: ObservableObject {
         // Check cancellation
         try Task.checkCancellation()
         
-        // Get secure cache directory
-        let cacheDir = try SecureMLX.secureCacheDirectory()
+        // Check for local override (sideloaded model)
+        // We append the model ID (replacing / with _) to avoid collisions
+        let safeModelName = sanitizedId.replacingOccurrences(of: "/", with: "_")
+        let secureCacheDir = try SecureMLX.secureCacheDirectory()
+        let localModelDir = secureCacheDir.appendingPathComponent(safeModelName)
+
+        let overrideURL: URL?
+        if FileManager.default.fileExists(atPath: localModelDir.appendingPathComponent("config.json").path) {
+            overrideURL = localModelDir
+            SecurityLogger.logPublic(.modelLoaded, details: "Using local override for \(sanitizedId)")
+        } else {
+            // Fallback to Hub download (managed by swift-transformers in standard cache)
+            overrideURL = nil
+        }
 
         // Load with progress
         let config = ModelConfiguration(
             id: sanitizedId,
-            overrideDirectory: cacheDir
+            overrideDirectory: overrideURL
         )
         
         loadTask = Task {
