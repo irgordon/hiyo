@@ -6,51 +6,31 @@
 //
 
 import SwiftUI
+import Combine
 
 struct ConversationSidebar: View {
     @ObservedObject var store: HiyoStore
     @ObservedObject var provider: MLXProvider
-    @State private var searchText = ""
-    @State private var showingDeleteConfirmation = false
-    @State private var chatToDelete: Chat?
-    @State private var searchResults: [Chat] = []
     
-    var filteredChats: [Chat] {
-        if searchText.isEmpty {
+    @State private var searchText = ""
+    @State private var debouncedSearchText = ""
+    @State private var chatToDelete: Chat?
+    @State private var showingDeleteConfirmation = false
+    
+    @State private var cancellables = Set<AnyCancellable>()
+    
+    // Derived state: no duplication, no stale values
+    private var filteredChats: [Chat] {
+        if debouncedSearchText.isEmpty {
             return store.chats
         }
-        return searchResults
-    }
-
-    private func updateSearch() {
-        if !searchText.isEmpty {
-            searchResults = store.searchChats(query: searchText)
-        }
+        return store.searchChats(query: debouncedSearchText)
     }
     
     var body: some View {
         VStack(spacing: 0) {
-            // Search field
-            HStack {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                TextField("Search", text: $searchText)
-                    .textFieldStyle(.plain)
-                if !searchText.isEmpty {
-                    Button(action: { searchText = "" }) {
-                        Image(systemName: "xmark.circle.fill")
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
-                }
-            }
-            .padding(8)
-            .background(.secondary.opacity(0.1))
-            .cornerRadius(8)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            searchField
             
-            // Conversation list
             List(selection: $store.currentChat) {
                 Section {
                     ForEach(filteredChats) { chat in
@@ -61,7 +41,7 @@ struct ConversationSidebar: View {
                         .tag(chat)
                         .contextMenu {
                             Button("Rename") { renameChat(chat) }
-                            Button("Duplicate") { duplicateChat(chat) }
+                            Button("Duplicate") { store.duplicateChat(chat) }
                             Divider()
                             Button("Delete", role: .destructive) {
                                 chatToDelete = chat
@@ -84,49 +64,10 @@ struct ConversationSidebar: View {
             }
             .listStyle(.sidebar)
             
-            // Bottom status bar
-            VStack(alignment: .leading, spacing: 6) {
-                Divider()
-                
-                HStack(spacing: 8) {
-                    Image(systemName: provider.isAvailable ? "cpu.fill" : "exclamationmark.triangle")
-                        .foregroundStyle(provider.isAvailable ? .accent : .orange)
-                        .imageScale(.small)
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(provider.isAvailable ? "MLX Ready" : "Model Offline")
-                            .font(.caption)
-                            .fontWeight(.medium)
-                        
-                        if let model = store.currentChat?.modelIdentifier {
-                            Text(model.displayName)
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                        }
-                    }
-                    
-                    Spacer()
-                }
-                
-                if provider.memoryUsage > 0 {
-                    HStack(spacing: 4) {
-                        Image(systemName: "memorychip")
-                            .font(.caption2)
-                        Text("\(Int(provider.memoryUsage * 1024)) MB")
-                            .font(.caption2)
-                        Spacer()
-                    }
-                    .foregroundStyle(.secondary)
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(.ultraThinMaterial)
+            statusBar
         }
         .background(.sidebarBackground)
-        .onChange(of: searchText) { _, _ in updateSearch() }
-        .onChange(of: store.chats) { _, _ in updateSearch() }
+        .onAppear(perform: setupDebounce)
         .alert("Delete Conversation?", isPresented: $showingDeleteConfirmation, presenting: chatToDelete) { chat in
             Button("Cancel", role: .cancel) { }
             Button("Delete", role: .destructive) {
@@ -136,13 +77,98 @@ struct ConversationSidebar: View {
             Text("This will permanently delete '\(chat.title)' and all its messages.")
         }
     }
+}
+
+private extension ConversationSidebar {
     
-    private func deleteChats(offsets: IndexSet) {
+    // MARK: - Search Field
+    
+    var searchField: some View {
+        HStack {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+            
+            TextField("Search", text: $searchText)
+                .textFieldStyle(.plain)
+            
+            if !searchText.isEmpty {
+                Button(action: { searchText = "" }) {
+                    Image(systemName: "xmark.circle.fill")
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+            }
+        }
+        .padding(8)
+        .background(.secondary.opacity(0.1))
+        .cornerRadius(8)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+    }
+    
+    // MARK: - Status Bar
+    
+    var statusBar: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Divider()
+            
+            HStack(spacing: 8) {
+                Image(systemName: provider.isAvailable ? "cpu.fill" : "exclamationmark.triangle")
+                    .foregroundStyle(provider.isAvailable ? .accent : .orange)
+                    .imageScale(.small)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(provider.isAvailable ? "MLX Ready" : "Model Offline")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                    
+                    if let model = store.currentChat?.modelIdentifier {
+                        Text(model.displayName)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+                
+                Spacer()
+            }
+            
+            if provider.memoryUsage > 0 {
+                HStack(spacing: 4) {
+                    Image(systemName: "memorychip")
+                        .font(.caption2)
+                    Text("\(Int(provider.memoryUsage * 1024)) MB")
+                        .font(.caption2)
+                    Spacer()
+                }
+                .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.ultraThinMaterial)
+    }
+    
+    // MARK: - Debounce Setup
+    
+    func setupDebounce() {
+        $searchText
+            .debounce(for: .milliseconds(250), scheduler: RunLoop.main)
+            .removeDuplicates()
+            .sink { value in
+                debouncedSearchText = value
+            }
+            .store(in: &cancellables)
+    }
+    
+    // MARK: - Actions
+    
+    func deleteChats(offsets: IndexSet) {
         offsets.map { filteredChats[$0] }.forEach(store.deleteChat)
     }
     
-    private func renameChat(_ chat: Chat) {
-        // Present rename dialog
+    func renameChat(_ chat: Chat) {
+        // Replace with SwiftUI-native rename UI later
         let alert = NSAlert()
         alert.messageText = "Rename Conversation"
         alert.informativeText = "Enter a new name:"
@@ -158,10 +184,6 @@ struct ConversationSidebar: View {
             chat.title = textField.stringValue
             try? store.modelContext.save()
         }
-    }
-    
-    private func duplicateChat(_ chat: Chat) {
-        store.duplicateChat(chat)
     }
 }
 
