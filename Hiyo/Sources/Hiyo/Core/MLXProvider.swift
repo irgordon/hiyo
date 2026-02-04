@@ -8,6 +8,7 @@
 import Foundation
 import MLX
 import MLXRandom
+import MLXNN
 import Tokenizers
 
 @MainActor
@@ -201,13 +202,15 @@ struct LLMGenerator {
                 }
 
                 var inputIds = truncatedPrompt
-                var cache: [Any]? = nil
+
+                // Initialize cache
+                let cache = model.newCache(parameters: parameters)
 
                 // Prefill
                 if inputIds.count > 1 {
                     let inputMLX = MLXArray(inputIds.dropLast()).reshaped([1, -1])
-                    let (_, newCache) = model(inputMLX, cache: nil)
-                    cache = newCache
+                    _ = model(inputMLX, cache: cache)
+                    // cache is updated in-place
 
                     // The last token is the first input for generation loop
                     inputIds = [inputIds.last!]
@@ -220,8 +223,8 @@ struct LLMGenerator {
                     
                     // Forward pass with cache
                     let inputMLX = MLXArray(inputIds).reshaped([1, -1])
-                    let (logits, newCache) = model(inputMLX, cache: cache)
-                    cache = newCache
+                    let logits = model(inputMLX, cache: cache)
+                    // cache is updated in-place
 
                     let nextLogits = logits[0..., -1, 0...]
                     
