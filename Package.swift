@@ -28,6 +28,7 @@ let package = Package(
                 .product(name: "Transformers", package: "swift-transformers")
             ],
             path: "Hiyo/Sources/Hiyo",
+            exclude: ["Resources/Info.plist", "Resources/Hiyo.entitlements"],
             resources: [
                 // Ensures icons, prompts, configs, and other assets are bundled.
                 .process("Resources")
