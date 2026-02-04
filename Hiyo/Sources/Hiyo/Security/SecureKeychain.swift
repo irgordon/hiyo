@@ -22,13 +22,15 @@ enum SecureKeychain {
         SecItemDelete(deleteQuery as CFDictionary)
         
         // Create access control
-        // Note: .privateKeyUsage is removed as it's intended for keys generated in Secure Enclave,
-        // not generic passwords. We use default protection.
+        // We use [] (empty flags) for standard protection which does not require
+        // immediate biometric authentication (unlike .biometryCurrentSet), allowing
+        // background access while the device is unlocked.
+        // The item is strictly bound to this device and only available when unlocked.
         var error: Unmanaged<CFError>?
         guard let accessControl = SecAccessControlCreateWithFlags(
             kCFAllocatorDefault,
             kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
-            [], // Standard protection
+            [],
             &error
         ) else {
             throw KeychainError.accessControlCreationFailed

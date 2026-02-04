@@ -44,19 +44,8 @@ final class MLXProvider: ObservableObject {
         let sanitizedId = try InputValidator.validateModelIdentifier(modelId)
         try Task.checkCancellation()
         
-        let safeModelName = sanitizedId.replacingOccurrences(of: "/", with: "_")
-        let secureCacheDir = try SecureMLX.secureCacheDirectory()
-        let localModelDir = secureCacheDir.appendingPathComponent(safeModelName)
-
-        let overrideURL: URL?
-        if FileManager.default.fileExists(atPath: localModelDir.appendingPathComponent("config.json").path) {
-            overrideURL = localModelDir
-            SecurityLogger.logPublic(.modelLoaded, details: "Using local override for \(sanitizedId)")
-        } else {
-            overrideURL = nil
-        }
-
-        let config = ModelConfiguration(id: sanitizedId, overrideDirectory: overrideURL)
+        // Delegate all loading and directory resolution to LLMModelFactory
+        let config = ModelConfiguration(id: sanitizedId)
         
         loadTask = Task {
             self.modelContainer = try await LLMModelFactory.shared.loadContainer(
