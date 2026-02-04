@@ -118,3 +118,23 @@ We removed the fallback entirely. The view now relies strictly on `lastMessagePr
 *   **Metric:** Scroll Performance (FPS) and Main Thread Block Time.
 *   **Baseline:** Unpredictable performance; potential for random 100ms+ stutters if caches were missing.
 *   **Optimized:** Guaranteed O(1) access for every row, ensuring consistent 60/120 FPS scrolling regardless of data state.
+
+# Benchmark Rationale: Offload Model Loading
+
+## Context
+The `MLXProvider.loadModel` method was previously wrapping `LLMModelFactory.loadContainer` in a `Task { ... }`. By default, unstructured Tasks inherit the current actor context, which in this case was `@MainActor`.
+
+## Performance Issue
+*   **Main Thread Blocking:** Even though `LLMModelFactory` is async, any synchronous work done before suspension, or any continuation logic that wasn't strictly isolated, could contend with the Main Thread.
+*   **UI Freeze:** Loading a large LLM (GBs of weights) involves significant I/O and memory mapping. If this happens on the Main Actor, the UI (animations, inputs) can stutter or freeze.
+
+## Optimization Strategy
+We refactored `loadModel` to use `Task.detached(priority: .userInitiated)`.
+*   **Detached Task:** Breaks the actor inheritance, ensuring the closure runs on a background thread from the start.
+*   **LoadModelOperation Actor:** Encapsulates the loading logic in a separate actor, guaranteeing isolation.
+*   **MainActor Hopping:** We explicitly hop back to the Main Actor (`await MainActor.run`) only for essential state updates (`state`, `modelContainer`).
+
+## Expected Improvement
+*   **Metric:** UI responsiveness during model load.
+*   **Baseline:** Potential frame drops during the initialization phase of the model loading.
+*   **Optimized:** Zero main thread impact during heavy loading operations; UI remains fully interactive (showing progress bars smoothly).

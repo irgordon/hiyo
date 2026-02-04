@@ -11,14 +11,50 @@ import MLXRandom
 import MLXNN
 import Tokenizers
 
+public enum ModelLoadState: Equatable {
+    case idle
+    case loading(modelId: String, progress: Double)
+    case loaded(modelId: String)
+    case failed(Error)
+
+    public static func == (lhs: ModelLoadState, rhs: ModelLoadState) -> Bool {
+        switch (lhs, rhs) {
+        case (.idle, .idle): return true
+        case (.loading(let id1, let p1), .loading(let id2, let p2)):
+            return id1 == id2 && p1 == p2
+        case (.loaded(let id1), .loaded(let id2)): return id1 == id2
+        case (.failed(let e1), .failed(let e2)):
+            return e1.localizedDescription == e2.localizedDescription
+        default: return false
+        }
+    }
+}
+
 @MainActor
 final class MLXProvider: ObservableObject {
+    @Published var state: ModelLoadState = .idle
     @Published var isAvailable: Bool = false
-    @Published var isLoading: Bool = false
-    @Published var loadingProgress: Double = 0.0
-    @Published var currentModel: String = "None"
     @Published var memoryUsage: Double = 0.0
     
+    // Backward compatibility computed properties
+    var isLoading: Bool {
+        if case .loading = state { return true }
+        return false
+    }
+
+    var loadingProgress: Double {
+        if case .loading(_, let progress) = state { return progress }
+        return 0.0
+    }
+
+    var currentModel: String {
+        switch state {
+        case .loaded(let id): return id
+        case .loading(let id, _): return id
+        default: return "None"
+        }
+    }
+
     var availableModels: [MLXModel] {
         modelRegistry.defaultModels
     }
@@ -26,6 +62,7 @@ final class MLXProvider: ObservableObject {
     private var modelContainer: ModelContainer?
     private let modelRegistry = MLXModelRegistry()
     private var loadTask: Task<Void, Error>?
+    private let loader = LoadModelOperation()
     
     init() {
         SecureMLX.configureSafeLimits()
@@ -37,30 +74,46 @@ final class MLXProvider: ObservableObject {
     func loadModel(_ modelId: String) async throws {
         loadTask?.cancel()
         
-        isLoading = true
-        loadingProgress = 0.0
-        defer { isLoading = false }
+        let sanitizedId: String
+        do {
+            sanitizedId = try InputValidator.validateModelIdentifier(modelId)
+        } catch {
+            state = .failed(error)
+            throw error
+        }
+
+        // Initial state update
+        state = .loading(modelId: sanitizedId, progress: 0.0)
         
-        let sanitizedId = try InputValidator.validateModelIdentifier(modelId)
         try Task.checkCancellation()
         
         // Delegate all loading and directory resolution to LLMModelFactory
         let config = ModelConfiguration(id: sanitizedId)
         
-        loadTask = Task {
-            self.modelContainer = try await LLMModelFactory.shared.loadContainer(
-                configuration: config
-            ) { [weak self] progress in
-                Task { @MainActor in
-                    self?.loadingProgress = progress.fractionCompleted
-                    self?.currentModel = sanitizedId
+        loadTask = Task.detached(priority: .userInitiated) {
+            do {
+                let container = try await self.loader.load(
+                    configuration: config
+                ) { progress in
+                    Task { @MainActor in
+                        self.state = .loading(modelId: sanitizedId, progress: progress.fractionCompleted)
+                    }
                 }
-            }
-            
-            await MainActor.run {
-                self.isAvailable = true
-                self.currentModel = sanitizedId
-                SecurityLogger.log(.modelLoaded, details: sanitizedId)
+
+                await MainActor.run {
+                    self.modelContainer = container
+                    self.state = .loaded(modelId: sanitizedId)
+                    self.isAvailable = true
+                    SecurityLogger.log(.modelLoaded, details: sanitizedId)
+                }
+            } catch is CancellationError {
+                // If cancelled, likely superseded by another load or user action.
+                // We do not change state here as it might race with the new task.
+            } catch {
+                await MainActor.run {
+                    self.state = .failed(error)
+                }
+                throw error
             }
         }
         
@@ -69,7 +122,7 @@ final class MLXProvider: ObservableObject {
     
     func unloadModel() {
         modelContainer = nil
-        currentModel = "None"
+        state = .idle
         MLX.GPU.clearCache()
         memoryUsage = 0.0
         SecurityLogger.log(.modelUnloaded, details: "Memory cleared")

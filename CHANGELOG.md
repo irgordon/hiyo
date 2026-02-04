@@ -21,6 +21,8 @@ All notable changes to this project will be documented in this file.
 - Solved N+1 query issue in conversation list by denormalizing `lastMessagePreview` and `messageCount` to the `Chat` model, reducing database fetches from O(N) to O(1) during list rendering.
 - Optimized `Chat.totalTokens` complexity from O(N) to O(1) by denormalizing token count into a cached field, updated incrementally on message changes.
 - Strictly enforced O(1) rendering in `ConversationRow` by removing the fallback to `chat.messages`, preventing accidental N+1 relationship fetches.
+- Offloaded model loading in `MLXProvider` to a detached background task using `LoadModelOperation` actor, preventing main thread blocking during large model initialization.
+- Introduced `ModelLoadState` enum for robust state management during model loading operations.
 
 ### Accessibility
 - Added accessibility labels and traits to conversation list items.
