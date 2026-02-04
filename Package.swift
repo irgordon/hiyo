@@ -12,7 +12,7 @@ let package = Package(
     ],
     dependencies: [
         // Pin exact versions for reproducible, secure builds.
-        .package(url: "https://github.com/ml-explore/mlx-swift.git", exact: "0.18.0"),
+        .package(url: "https://github.com/ml-explore/mlx-swift.git", from: "0.20.0"),
         .package(url: "https://github.com/huggingface/swift-transformers.git", exact: "0.1.0")
     ],
     targets: [
