@@ -24,8 +24,8 @@ final class DuplicateChatBenchmark {
         // 2. Seed Data
         print("🌱 Seeding data...")
         let chat = Chat(title: "Benchmark Chat", modelIdentifier: "test-model")
-        for i in 0..<messageCount {
-            let msg = Message(content: "Message content \(i)", role: i % 2 == 0 ? .user : .assistant)
+        for index in 0..<messageCount {
+            let msg = Message(content: "Message content \(index)", role: index % 2 == 0 ? .user : .assistant)
             msg.tokensUsed = Int.random(in: 10...100)
             msg.latencyMs = Double.random(in: 10...500)
             chat.messages.append(msg)
@@ -71,14 +71,14 @@ final class DuplicateChatBenchmark {
             // Background context creation
             let bgContext = ModelContext(container)
 
-            // Simulate fetching the source chat (Predicate not supported in benchmark harness easily without full setup)
-            // So we will just simulate the workload of creating messages
+            // Simulate fetching the source chat (Predicate not supported in benchmark harness
+            // easily without full setup). So we will just simulate the workload of creating messages.
 
             let bgChat = Chat(title: "Async Copy", modelIdentifier: "test-model")
 
             // Simulate the heavy loop
-            for i in 0..<messageCount {
-                let msg = Message(content: "Message content \(i)", role: i % 2 == 0 ? .user : .assistant)
+            for index in 0..<messageCount {
+                let msg = Message(content: "Message content \(index)", role: index % 2 == 0 ? .user : .assistant)
                 msg.tokensUsed = Int.random(in: 10...100)
                 msg.latencyMs = Double.random(in: 10...500)
                 bgChat.messages.append(msg)

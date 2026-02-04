@@ -8,6 +8,8 @@ let package = Package(
         .macOS(.v14)
     ],
     products: [
+        // Hiyo is a macOS app built via SPM + Xcode integration.
+        // The executable target provides the app’s entry point.
         .executable(name: "Hiyo", targets: ["Hiyo"])
     ],
     dependencies: [
@@ -16,7 +18,6 @@ let package = Package(
         .package(url: "https://github.com/huggingface/swift-transformers.git", exact: "0.1.0")
     ],
     targets: [
-        // MARK: - Main App Target
         .executableTarget(
             name: "Hiyo",
             dependencies: [
@@ -28,36 +29,24 @@ let package = Package(
             ],
             path: "Hiyo/Sources/Hiyo",
             resources: [
+                // Ensures icons, prompts, configs, and other assets are bundled.
                 .process("Resources")
             ],
             swiftSettings: [
-                // Keep StrictConcurrency only if required by your architecture.
+                // Only enable StrictConcurrency if required by your architecture.
+                // Remove this line if not strictly necessary.
                 // .enableExperimentalFeature("StrictConcurrency")
-            ],
-            linkerSettings: [
-                .linkedFramework("Security")
-                // CryptoKit is a Swift module, not a framework — no linker entry needed.
             ]
         ),
-
-        // MARK: - Unit Tests
-        .testTarget(
-            name: "HiyoTests",
-            dependencies: ["Hiyo"],
-            path: "Hiyo/Tests/HiyoTests",
-            resources: [
-                .process("Resources")
-            ]
-        ),
-
-        // MARK: - UI Tests
-        .testTarget(
-            name: "HiyoUITests",
-            dependencies: ["Hiyo"],
-            path: "Hiyo/Tests/HiyoUITests",
-            resources: [
-                .process("Resources")
-            ]
-        )
+        // Test target commented out as the directory structure is missing in the repository
+        // .testTarget(
+        //     name: "HiyoTests",
+        //     dependencies: ["Hiyo"],
+        //     path: "Hiyo/Tests/HiyoTests",
+        //     resources: [
+        //         // Allows test fixtures, sample JSON, etc.
+        //         .process("Resources")
+        //     ]
+        // )
     ]
 )
