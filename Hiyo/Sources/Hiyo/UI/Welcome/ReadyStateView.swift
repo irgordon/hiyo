@@ -26,7 +26,7 @@ struct ReadyStateView: View {
                 
                 Image(systemName: "sparkles")
                     .font(.system(size: 44))
-                    .foregroundStyle(.accent)
+                    .foregroundStyle(Color.accentColor)
             }
             
             Text("Welcome to Hiyo")

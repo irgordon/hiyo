@@ -128,22 +128,6 @@ enum StorageKeys {
     static let exportsDirectory = "Exports"
 }
 
-// MARK: - Notification Names
-
-extension Notification.Name {
-    // App events
-    static let hiyoNewConversation = Notification.Name("hiyo.newConversation")
-    static let hiyoClearConversation = Notification.Name("hiyo.clearConversation")
-    static let hiyoExportConversation = Notification.Name("hiyo.exportConversation")
-    static let hiyoFocusInput = Notification.Name("hiyo.focusInput")
-    
-    // Model events
-    static let hiyoModelLoaded = Notification.Name("hiyo.modelLoaded")
-    static let hiyoModelUnloaded = Notification.Name("hiyo.modelUnloaded")
-    static let hiyoGenerationStarted = Notification.Name("hiyo.generationStarted")
-    static let hiyoGenerationCompleted = Notification.Name("hiyo.generationCompleted")
-}
-
 // MARK: - URLs
 
 enum AppURLs {

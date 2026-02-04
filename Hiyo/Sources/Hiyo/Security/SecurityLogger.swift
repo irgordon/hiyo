@@ -74,7 +74,7 @@ enum SecurityLogger {
         
         // Data
         case exportOperation = "EXPORT_OPERATION"
-        importOperation = "IMPORT_OPERATION"
+        case importOperation = "IMPORT_OPERATION"
         case dataCleared = "DATA_CLEARED"
     }
 }

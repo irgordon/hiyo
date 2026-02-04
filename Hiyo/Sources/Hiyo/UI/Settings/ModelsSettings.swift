@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import MLX
 
 struct ModelsSettings: View {
     @StateObject private var provider = MLXProvider()

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Darwin
 
 actor ResourceGuard {
     static let shared = ResourceGuard()
@@ -111,5 +112,3 @@ enum ResourceError: Error {
     }
 }
 
-import Darwin.mach.mach_init
-import Darwin.mach.task_info

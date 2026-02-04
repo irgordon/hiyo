@@ -22,7 +22,7 @@ struct ModelRow: View {
                 
                 Image(systemName: iconName)
                     .font(.system(size: 14))
-                    .foregroundStyle(isLoaded ? .accent : .secondary)
+                    .foregroundStyle(isLoaded ? Color.accentColor : .secondary)
             }
             
             // Info
