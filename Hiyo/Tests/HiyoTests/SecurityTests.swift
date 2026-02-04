@@ -71,7 +71,7 @@ final class SecurityTests: XCTestCase {
         let longOutput = String(repeating: "a", count: SecurityLimits.maxOutputLength + 100)
         let sanitized = InputValidator.sanitizeOutput(longOutput)
         
-        XCTAssertLessThanOrEqual(sanitized.count, SecurityLimits.maxOutputLength + 50) // Allow for truncation message
+        XCTAssertLessThanOrEqual(sanitized.count, SecurityLimits.maxOutputLength + 50)
         XCTAssertTrue(sanitized.contains("[Output truncated"))
     }
     
@@ -92,8 +92,8 @@ final class SecurityTests: XCTestCase {
         let secure = SecureMemory("secret")
         secure.destroy()
         
-        // After destroy, accessing should fail
-        // Note: In production this would fatalError, in tests we verify the mechanism exists
+        // After destroy, accessing should fail — we only verify that destroy() exists.
+        XCTAssertTrue(true)
     }
     
     func testSecureKeyGeneration() {
@@ -103,17 +103,12 @@ final class SecurityTests: XCTestCase {
         var key1Data: Data?
         var key2Data: Data?
         
-        key1.withData { data in
-            key1Data = data
-        }
-        
-        key2.withData { data in
-            key2Data = data
-        }
+        key1.withData { data in key1Data = data }
+        key2.withData { data in key2Data = data }
         
         XCTAssertNotNil(key1Data)
         XCTAssertNotNil(key2Data)
-        XCTAssertNotEqual(key1Data, key2Data) // Keys should be random
+        XCTAssertNotEqual(key1Data, key2Data)
         XCTAssertEqual(key1Data?.count, 32)
     }
     
@@ -121,9 +116,7 @@ final class SecurityTests: XCTestCase {
         let key = SecureKey(size: 32)
         
         var symmetricKey: SymmetricKey?
-        key.withSymmetricKey { sk in
-            symmetricKey = sk
-        }
+        key.withSymmetricKey { sk in symmetricKey = sk }
         
         XCTAssertNotNil(symmetricKey)
     }
@@ -134,17 +127,13 @@ final class SecurityTests: XCTestCase {
         let testAccount = "test.keychain.\(UUID().uuidString)"
         let testData = Data("test secret data".utf8)
         
-        // Save
         try SecureKeychain.save(data: testData, account: testAccount)
         
-        // Load
         let loaded = try SecureKeychain.load(account: testAccount)
         XCTAssertEqual(loaded, testData)
         
-        // Delete
         try SecureKeychain.delete(account: testAccount)
         
-        // Verify deletion
         XCTAssertThrowsError(try SecureKeychain.load(account: testAccount)) { error in
             XCTAssertEqual(error as? KeychainError, .itemNotFound)
         }
@@ -153,24 +142,22 @@ final class SecurityTests: XCTestCase {
     // MARK: - Resource Guard Tests
     
     func testResourceGuardRateLimiting() async throws {
-        let guard = ResourceGuard.shared
+        let guardObj = ResourceGuard.shared
         
-        // First requests should succeed
         for _ in 0..<5 {
-            try await guard.checkResourceLimits()
+            try await guardObj.checkResourceLimits()
         }
         
-        // Token allocation
-        try await guard.allocateTokens(100)
-        await guard.releaseTokens(100)
+        try await guardObj.allocateTokens(100)
+        await guardObj.releaseTokens(100)
     }
     
     func testResourceGuardTokenLimits() async {
-        let guard = ResourceGuard.shared
+        let guardObj = ResourceGuard.shared
         
         do {
-            try await guard.allocateTokens(10000) // At limit
-            await guard.releaseTokens(10000)
+            try await guardObj.allocateTokens(10000)
+            await guardObj.releaseTokens(10000)
         } catch {
             XCTFail("Should allow tokens at limit: \(error)")
         }
@@ -222,25 +209,20 @@ final class SecurityTests: XCTestCase {
     // MARK: - Code Integrity Tests
     
     func testDebuggerDetection() {
-        // In test environment, debugger may or may not be attached
-        // Just verify the method doesn't crash
         _ = CodeIntegrity.isDebuggerAttached()
     }
     
     func testSuspiciousLibraryDetection() {
-        // In clean test environment, should be false
-        // Note: May be affected by test runner environment
         _ = CodeIntegrity.hasSuspiciousLibraries()
     }
     
     // MARK: - Security Logger Tests
     
     func testSecurityLogging() {
-        // Verify logging doesn't crash (actual log destination is OSLog)
         SecurityLogger.log(.modelLoaded, details: "Test model")
         SecurityLogger.logPublic(.modelLoaded, details: "Public test")
+        SecurityLogger.logPublic(.promptTruncated, details: "Truncated test")
         
-        // These should complete without throwing
         XCTAssertTrue(true)
     }
     
