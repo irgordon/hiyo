@@ -106,7 +106,7 @@ final class MLXProvider: ObservableObject {
     // MARK: - Generation
     
     func generate(
-        messages: [Message],
+        messages: [LLMMessage],
         parameters: GenerationParameters = .default
     ) async throws -> AsyncStream<String> {
         guard let container = modelContainer else {
@@ -181,7 +181,7 @@ struct LLMGenerator {
     let tokenizer: Tokenizer
     let parameters: GenerationParameters
 
-    static func formatPrompt(messages: [Message], tokenizer: Tokenizer) -> String {
+    static func formatPrompt(messages: [LLMMessage], tokenizer: Tokenizer) -> String {
         // Simple chat format - adjust based on model
         let lines = messages.map { message -> String in
             switch message.role {
@@ -305,7 +305,7 @@ struct GenerationResponse {
     let token: Int
 }
 
-struct Message {
+struct LLMMessage {
     let role: String
     let content: String
 }

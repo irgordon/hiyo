@@ -135,7 +135,7 @@ struct SetupStep: View {
             if isActive {
                 Image(systemName: "arrow.right")
                     .font(.caption)
-                    .foregroundStyle(.accent)
+                    .foregroundStyle(Color.accentColor)
             }
         }
         .opacity(isActive ? 1.0 : 0.6)

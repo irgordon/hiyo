@@ -15,11 +15,11 @@ struct FeatureRow: View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(.accent)
+                .foregroundStyle(Color.accentColor)
                 .frame(width: 24, height: 24)
                 .background(
                     RoundedRectangle(cornerRadius: 6)
-                        .fill(.accent.opacity(0.1))
+                        .fill(Color.accentColor.opacity(0.1))
                 )
             
             Text(text)
@@ -39,7 +39,7 @@ extension FeatureRow {
         HStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.caption)
-                .foregroundStyle(.accent)
+                .foregroundStyle(Color.accentColor)
             
             Text(text)
                 .font(.caption)
@@ -52,11 +52,11 @@ extension FeatureRow {
         HStack(spacing: 16) {
             Image(systemName: icon)
                 .font(.system(size: 24))
-                .foregroundStyle(.accent)
+                .foregroundStyle(Color.accentColor)
                 .frame(width: 48, height: 48)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(.accent.opacity(0.1))
+                        .fill(Color.accentColor.opacity(0.1))
                 )
             
             VStack(alignment: .leading, spacing: 4) {

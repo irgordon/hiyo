@@ -67,13 +67,17 @@ struct PrivacySettings: View {
     }
     
     private func clearAllData() {
-        do {
-            try SecureMLX.clearAllCaches()
-            // Clear conversations...
-            showingClearedAlert = true
-            SecurityLogger.log(.dataCleared, details: "User initiated full data clear")
-        } catch {
-            // Show error
+        Task {
+            do {
+                try await SecureMLX.clearAllCaches()
+                // Clear conversations...
+                await MainActor.run {
+                    showingClearedAlert = true
+                }
+                SecurityLogger.log(.dataCleared, details: "User initiated full data clear")
+            } catch {
+                // Show error
+            }
         }
     }
 }

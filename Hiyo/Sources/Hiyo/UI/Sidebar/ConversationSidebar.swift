@@ -114,7 +114,7 @@ private extension ConversationSidebar {
             
             HStack(spacing: 8) {
                 Image(systemName: provider.isAvailable ? "cpu.fill" : "exclamationmark.triangle")
-                    .foregroundStyle(provider.isAvailable ? .accent : .orange)
+                    .foregroundStyle(provider.isAvailable ? Color.accentColor : .orange)
                     .imageScale(.small)
                 
                 VStack(alignment: .leading, spacing: 2) {

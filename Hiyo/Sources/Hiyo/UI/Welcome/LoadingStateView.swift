@@ -15,7 +15,7 @@ struct LoadingStateView: View {
             // Animated loading indicator
             ZStack {
                 Circle()
-                    .stroke(.accent.opacity(0.2), lineWidth: 4)
+                    .stroke(Color.accentColor.opacity(0.2), lineWidth: 4)
                     .frame(width: 80, height: 80)
                 
                 Circle()
@@ -27,7 +27,7 @@ struct LoadingStateView: View {
                 
                 Image(systemName: "arrow.down")
                     .font(.system(size: 28))
-                    .foregroundStyle(.accent)
+                    .foregroundStyle(Color.accentColor)
             }
             
             VStack(spacing: 8) {
