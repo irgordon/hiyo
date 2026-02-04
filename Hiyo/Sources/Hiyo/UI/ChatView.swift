@@ -1,6 +1,8 @@
 import SwiftUI
 
+@MainActor
 struct ChatView: View {
+    @Environment(NavigationCoordinator.self) var nav
     @Bindable var chat: Chat
     var store: HiyoStore
     var provider: MLXProvider

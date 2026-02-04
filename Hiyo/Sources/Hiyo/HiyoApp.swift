@@ -22,10 +22,25 @@ struct HiyoApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @State private var appState = HiyoState()
 
+    @State private var store: HiyoStore
+    @State private var provider: MLXProvider
+    @State private var nav: NavigationCoordinator
+
     init() {
         SecureMLX.configureSafeLimits()
         enforceSecurityIntegrity()
         configureDefaults()
+
+        // Initialize store and coordinator
+        do {
+            let s = try HiyoStore()
+            let p = MLXProvider()
+            _store = State(initialValue: s)
+            _provider = State(initialValue: p)
+            _nav = State(initialValue: NavigationCoordinator(store: s, provider: p))
+        } catch {
+            fatalError("Failed to initialize HiyoStore: \(error)")
+        }
     }
 
     var body: some Scene {
@@ -33,6 +48,9 @@ struct HiyoApp: App {
             ContentView()
                 .frame(minWidth: 900, minHeight: 600)
                 .environment(appState)
+                .environment(store)
+                .environment(provider)
+                .environment(nav)
                 .background(WindowReader { window in
                     appDelegate.mainWindow = window
                 })
@@ -43,7 +61,7 @@ struct HiyoApp: App {
         .commands {
             CommandGroup(replacing: .newItem) {
                 Button("New Conversation") {
-                    SecureNotification.post(name: .newConversation)
+                    nav.createNewChat()
                 }
                 .keyboardShortcut("n", modifiers: .command)
 
@@ -55,7 +73,9 @@ struct HiyoApp: App {
 
             CommandMenu("Conversation") {
                 Button("Clear History") {
-                    SecureNotification.post(name: .clearConversation)
+                    if let chat = nav.selectedChat {
+                        store.clearMessages(in: chat)
+                    }
                 }
                 .keyboardShortcut("k", modifiers: [.command, .shift])
 

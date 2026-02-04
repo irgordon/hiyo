@@ -1,7 +1,9 @@
 import SwiftUI
 
+@MainActor
 struct ConversationInspector: View {
-    var chat: Chat
+    @Environment(NavigationCoordinator.self) var nav
+    @Bindable var chat: Chat
     var provider: MLXProvider
 
     var body: some View {

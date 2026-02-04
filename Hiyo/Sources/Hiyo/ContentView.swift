@@ -8,36 +8,35 @@
 import SwiftUI
 
 struct ContentView: View {
+    @Environment(NavigationCoordinator.self) var nav
     @Environment(HiyoState.self) var appState
+    @Environment(HiyoStore.self) var store
+    @Environment(MLXProvider.self) var provider
 
-    @State private var store: HiyoStore = {
-        do {
-            return try HiyoStore()
-        } catch {
-            NSLog("Failed to initialize HiyoStore: \(error.localizedDescription)")
-            // Fallback strategy: In production, we might want a recovery mode.
-            // For now, we crash responsibly as persistence is critical.
-            fatalError("Failed to initialize HiyoStore: \(error)")
-        }
-    }()
-
-    @State private var provider = MLXProvider()
+    // Binding adapter for column visibility since NavigationSplitView expects Binding<NavigationSplitViewVisibility>
+    // but nav.isSidebarVisible is a Bool. We can map it roughly or assume double column for now.
+    // However, standard sidebar toggling usually uses columnVisibility.
+    // For simplicity, let's keep binding to appState as before if that controls UI persistence,
+    // OR migrate to nav fully if we want nav to control it. The requirement says nav.
+    // Let's use a computed binding.
+    @State private var columnVisibility = NavigationSplitViewVisibility.all
 
     var body: some View {
-        NavigationSplitView(columnVisibility: $appState.isSidebarVisible) {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             // MARK: Sidebar
-            ConversationSidebar(store: store, provider: provider)
+            ConversationSidebar()
                 .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 320)
+                .toolbar(removing: .sidebarToggle) // We implement our own
         } content: {
             // MARK: Content
-            if let chat = store.currentChat {
+            if let chat = nav.selectedChat {
                 ChatView(chat: chat, store: store, provider: provider)
             } else {
                 HiyoWelcomeView(provider: provider)
             }
         } detail: {
             // MARK: Inspector
-            if let chat = store.currentChat {
+            if nav.isInspectorVisible, let chat = nav.selectedChat {
                 ConversationInspector(chat: chat, provider: provider)
                     .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 300)
             }
@@ -45,12 +44,21 @@ struct ContentView: View {
         .navigationSplitViewStyle(.balanced)
         .toolbar {
             ToolbarItemGroup(placement: .navigation) {
-                Button(action: { appState.isSidebarVisible.toggle() }) {
+                Button(action: {
+                    withAnimation {
+                        if columnVisibility == .detailOnly {
+                            columnVisibility = .all
+                        } else {
+                            columnVisibility = .detailOnly // Collapse sidebar
+                        }
+                        nav.toggleSidebar()
+                    }
+                }) {
                     Image(systemName: "sidebar.left")
                 }
                 .help("Toggle Sidebar")
 
-                Button(action: { createNewChat() }) {
+                Button(action: { nav.createNewChat() }) {
                     Image(systemName: "square.and.pencil")
                 }
                 .help("New Conversation")
@@ -75,6 +83,17 @@ struct ContentView: View {
 
                 ConnectionStatusBadge(provider: provider)
 
+                Button(action: {
+                    withAnimation {
+                        nav.toggleInspector()
+                    }
+                }) {
+                    Image(systemName: "sidebar.right")
+                        .foregroundStyle(nav.isInspectorVisible ? .accentColor : .secondary)
+                }
+                .disabled(nav.selectedChat == nil)
+                .help("Toggle Inspector")
+
                 Menu {
                     Button("Export as Text...") { exportAsText() }
                     Button("Export as JSON...") { exportAsJSON() }
@@ -84,17 +103,19 @@ struct ContentView: View {
                     Image(systemName: "square.and.arrow.up")
                 }
                 .menuStyle(.borderedButton)
-                .disabled(store.currentChat == nil)
+                .disabled(nav.selectedChat == nil)
             }
         }
         .task {
             for await _ in NotificationCenter.default.notifications(named: .newConversation) {
-                createNewChat()
+                nav.createNewChat()
             }
         }
         .task {
             for await _ in NotificationCenter.default.notifications(named: .clearConversation) {
-                clearCurrentChat()
+                if let chat = nav.selectedChat {
+                    store.clearMessages(in: chat)
+                }
             }
         }
         .onChange(of: appState.selectedModel) { _, newModel in
@@ -107,31 +128,15 @@ struct ContentView: View {
                 }
             }
         }
-    }
-
-    // MARK: - Actions
-
-    private func createNewChat() {
-        let chat = store.createChat(title: "New Chat", model: appState.selectedModel)
-        NotificationCenter.default.post(name: .focusInputField, object: nil)
-
-        // Auto-load model if needed
-        if provider.currentModel != appState.selectedModel {
-            Task {
-                do {
-                    try await provider.loadModel(appState.selectedModel)
-                } catch {
-                    NSLog("Model auto-load failed for \(appState.selectedModel): \(error.localizedDescription)")
-                }
+        .onChange(of: nav.isSidebarVisible) { _, isVisible in
+            // Sync nav state to split view
+             withAnimation {
+                columnVisibility = isVisible ? .all : .detailOnly
             }
         }
     }
 
-    private func clearCurrentChat() {
-        if let chat = store.currentChat {
-            store.clearMessages(in: chat)
-        }
-    }
+    // MARK: - Actions
 
     private func exportAsText() {
         // Downstream handlers must ensure sensitive content is handled safely.

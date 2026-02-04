@@ -6,44 +6,55 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct ConversationSidebar: View {
-    var store: HiyoStore
-    var provider: MLXProvider
+    @Environment(NavigationCoordinator.self) var nav
+    @Environment(HiyoStore.self) var store
+    @Environment(MLXProvider.self) var provider
+
+    @Query(sort: \ChatSummary.modifiedAt, order: .reverse)
+    var summaries: [ChatSummary]
     
     @State private var searchText = ""
     @State private var debouncedSearchText = ""
-    @State private var chatToDelete: Chat?
+    @State private var summaryToDelete: ChatSummary?
     @State private var showingDeleteConfirmation = false
     
-    // Derived state: no duplication, no stale values
-    private var filteredChats: [Chat] {
+    // Filtered summaries
+    private var filteredSummaries: [ChatSummary] {
         if debouncedSearchText.isEmpty {
-            return store.chats
+            return summaries
         }
-        return store.searchChats(query: debouncedSearchText)
+        return summaries.filter { $0.title.localizedStandardContains(debouncedSearchText) }
     }
     
     var body: some View {
-        @Bindable var store = store
+        @Bindable var nav = nav
 
         VStack(spacing: 0) {
             searchField
             
-            List(selection: $store.currentChat) {
+            // Note: selection parameter removed because of type mismatch (ChatSummary vs Chat).
+            // Selection is handled via ConversationRow's onTapGesture and isSelected state.
+            List {
                 Section {
-                    ForEach(filteredChats) { chat in
+                    ForEach(filteredSummaries) { summary in
                         ConversationRow(
-                            chat: chat,
-                            isSelected: store.currentChat?.id == chat.id
+                            chat: summary,
+                            isSelected: nav.selectedChat?.id == summary.id
                         )
-                        .tag(chat)
+                        .tag(summary.id)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            nav.selectChat(summary)
+                        }
                         .contextMenu {
-                            Button("Rename") { renameChat(chat) }
-                            Button("Duplicate") { store.duplicateChat(chat) }
+                            Button("Rename") { renameChat(summary) }
+                            Button("Duplicate") { duplicateChat(summary) }
                             Divider()
                             Button("Delete", role: .destructive) {
-                                chatToDelete = chat
+                                summaryToDelete = summary
                                 showingDeleteConfirmation = true
                             }
                         }
@@ -55,7 +66,7 @@ struct ConversationSidebar: View {
                             .font(.caption)
                             .textCase(.uppercase)
                         Spacer()
-                        Text("\(filteredChats.count)")
+                        Text("\(filteredSummaries.count)")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -72,13 +83,13 @@ struct ConversationSidebar: View {
                 debouncedSearchText = searchText
             } catch {}
         }
-        .alert("Delete Conversation?", isPresented: $showingDeleteConfirmation, presenting: chatToDelete) { chat in
+        .alert("Delete Conversation?", isPresented: $showingDeleteConfirmation, presenting: summaryToDelete) { summary in
             Button("Cancel", role: .cancel) { }
             Button("Delete", role: .destructive) {
-                store.deleteChat(chat)
+                deleteSummary(summary)
             }
-        } message: { chat in
-            Text("This will permanently delete '\(chat.title)' and all its messages.")
+        } message: { summary in
+            Text("This will permanently delete '\(summary.title)' and all its messages.")
         }
     }
 }
@@ -126,7 +137,7 @@ private extension ConversationSidebar {
                         .font(.caption)
                         .fontWeight(.medium)
                     
-                    if let model = store.currentChat?.modelIdentifier {
+                    if let model = nav.selectedChat?.modelIdentifier {
                         Text(model.displayName)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
@@ -156,10 +167,27 @@ private extension ConversationSidebar {
     // MARK: - Actions
     
     func deleteChats(offsets: IndexSet) {
-        offsets.map { filteredChats[$0] }.forEach(store.deleteChat)
+        offsets.map { filteredSummaries[$0] }.forEach(deleteSummary)
+    }
+
+    func deleteSummary(_ summary: ChatSummary) {
+        if let chat = store.modelContext.model(for: summary.id, as: Chat.self) {
+            store.deleteChat(chat)
+            if nav.selectedChat?.id == chat.id {
+                nav.deselectChat()
+            }
+        }
+    }
+
+    func duplicateChat(_ summary: ChatSummary) {
+        if let chat = store.modelContext.model(for: summary.id, as: Chat.self) {
+            store.duplicateChat(chat)
+        }
     }
     
-    func renameChat(_ chat: Chat) {
+    func renameChat(_ summary: ChatSummary) {
+        guard let chat = store.modelContext.model(for: summary.id, as: Chat.self) else { return }
+
         // Replace with SwiftUI-native rename UI later
         let alert = NSAlert()
         alert.messageText = "Rename Conversation"
