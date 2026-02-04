@@ -28,7 +28,6 @@ final class MLXProvider: ObservableObject {
     private var loadTask: Task<Void, Error>?
     
     init() {
-        // Configure safe defaults
         SecureMLX.configureSafeLimits()
         isAvailable = true
     }
@@ -36,21 +35,15 @@ final class MLXProvider: ObservableObject {
     // MARK: - Model Management
     
     func loadModel(_ modelId: String) async throws {
-        // Cancel existing load
         loadTask?.cancel()
         
         isLoading = true
         loadingProgress = 0.0
         defer { isLoading = false }
         
-        // Validate
         let sanitizedId = try InputValidator.validateModelIdentifier(modelId)
-        
-        // Check cancellation
         try Task.checkCancellation()
         
-        // Check for local override (sideloaded model)
-        // We append the model ID (replacing / with _) to avoid collisions
         let safeModelName = sanitizedId.replacingOccurrences(of: "/", with: "_")
         let secureCacheDir = try SecureMLX.secureCacheDirectory()
         let localModelDir = secureCacheDir.appendingPathComponent(safeModelName)
@@ -60,15 +53,10 @@ final class MLXProvider: ObservableObject {
             overrideURL = localModelDir
             SecurityLogger.logPublic(.modelLoaded, details: "Using local override for \(sanitizedId)")
         } else {
-            // Fallback to Hub download (managed by swift-transformers in standard cache)
             overrideURL = nil
         }
 
-        // Load with progress
-        let config = ModelConfiguration(
-            id: sanitizedId,
-            overrideDirectory: overrideURL
-        )
+        let config = ModelConfiguration(id: sanitizedId, overrideDirectory: overrideURL)
         
         loadTask = Task {
             self.modelContainer = try await LLMModelFactory.shared.loadContainer(
@@ -99,7 +87,6 @@ final class MLXProvider: ObservableObject {
     }
     
     func refreshAvailableModels() {
-        // Models are statically defined in registry
         objectWillChange.send()
     }
     
@@ -113,7 +100,6 @@ final class MLXProvider: ObservableObject {
             throw MLXError.modelNotLoaded
         }
         
-        // Resource check
         try await ResourceGuard.shared.checkResourceLimits()
         
         let startTime = Date()
@@ -122,33 +108,29 @@ final class MLXProvider: ObservableObject {
         return AsyncStream { continuation in
             Task {
                 do {
-                    let stream = try await container.perform { [weak self] model, tokenizer in
-                        // Format prompt
-                        let prompt = LLMGenerator.formatPrompt(messages: messages, tokenizer: tokenizer)
+                    let stream = try await container.perform { [weak self] _, model, tokenizer in
                         
-                        // Check limits
+                        let prompt = LLMGenerator.formatPrompt(messages: messages, tokenizer: tokenizer)
                         let inputIds = tokenizer.encode(text: prompt)
+                        
                         try await ResourceGuard.shared.allocateTokens(inputIds.count)
                         
-                        // Stream generation
                         let generator = LLMGenerator(model: model, tokenizer: tokenizer, parameters: parameters)
+                        
                         for await response in generator.generate(prompt: inputIds) {
-                            // Check cancellation
                             guard !Task.isCancelled else { break }
                             
                             tokenCount += 1
-                            
                             continuation.yield(response.text)
                             
-                            // Update stats
                             await self?.updateMemoryStats()
                         }
                         
                         await ResourceGuard.shared.releaseTokens(tokenCount)
                         
-                        // Log stats
                         let latency = Date().timeIntervalSince(startTime) * 1000
-                        SecurityLogger.logPublic(.generationCompleted, details: "Generated \(tokenCount) tokens in \(Int(latency))ms")
+                        SecurityLogger.logPublic(.generationCompleted,
+                                                details: "Generated \(tokenCount) tokens in \(Int(latency))ms")
                     }
                     
                     _ = try await stream
@@ -163,10 +145,10 @@ final class MLXProvider: ObservableObject {
         }
     }
     
-    // MARK: - Private Methods
+    // MARK: - Private
     
     private func updateMemoryStats() async {
-        let active = Double(MLX.GPU.activeMemory) / 1_073_741_824.0 // GB
+        let active = Double(MLX.GPU.activeMemory) / 1_073_741_824.0
         await MainActor.run {
             self.memoryUsage = active
         }
@@ -175,24 +157,18 @@ final class MLXProvider: ObservableObject {
 
 // MARK: - Generation Logic
 
-/// Helper struct to handle model generation logic outside of MainActor
-struct LLMGenerator {
+struct LLMGenerator: Sendable {
     let model: LLMModel
     let tokenizer: Tokenizer
     let parameters: GenerationParameters
 
     static func formatPrompt(messages: [LLMMessage], tokenizer: Tokenizer) -> String {
-        // Simple chat format - adjust based on model
         let lines = messages.map { message -> String in
             switch message.role {
-            case "system":
-                return "System: \(message.content)"
-            case "user":
-                return "User: \(message.content)"
-            case "assistant":
-                return "Assistant: \(message.content)"
-            default:
-                return "\(message.content)"
+            case "system": return "System: \(message.content)"
+            case "user": return "User: \(message.content)"
+            case "assistant": return "Assistant: \(message.content)"
+            default: return message.content
             }
         }
         
@@ -203,68 +179,74 @@ struct LLMGenerator {
     func generate(prompt: [Int]) -> AsyncStream<GenerationResponse> {
         AsyncStream { continuation in
             Task {
-                // Truncate input to security limit
-                let maxContext = SecurityLimits.maxContextTokens
-                let truncatedPrompt: [Int]
-                if prompt.count > maxContext {
-                    truncatedPrompt = Array(prompt.suffix(maxContext))
-                    print("Warning: Prompt truncated to \(maxContext) tokens")
-                } else {
-                    truncatedPrompt = prompt
-                }
-
-                var inputIds = truncatedPrompt
-
-                // Initialize cache
-                let cache = model.newCache(parameters: parameters)
-
-                // Prefill
-                if inputIds.count > 1 {
-                    let inputMLX = MLXArray(inputIds.dropLast()).reshaped([1, -1])
-                    _ = model(inputMLX, cache: cache)
-                    // cache is updated in-place
-
-                    // The last token is the first input for generation loop
-                    inputIds = [inputIds.last!]
-                }
-
-                let maxTokens = min(parameters.maxTokens, 4096)
-                
-                for _ in 0..<maxTokens {
-                    guard !Task.isCancelled else { break }
+                do {
+                    let maxContext = SecurityLimits.maxContextTokens
+                    let truncatedPrompt = prompt.count > maxContext
+                        ? Array(prompt.suffix(maxContext))
+                        : prompt
                     
-                    // Forward pass with cache
-                    let inputMLX = MLXArray(inputIds).reshaped([1, -1])
-                    let logits = model(inputMLX, cache: cache)
-                    // cache is updated in-place
+                    if prompt.count > maxContext {
+                        SecurityLogger.logPublic(.promptTruncated,
+                                                 details: "Prompt truncated to \(maxContext) tokens")
+                    }
 
-                    let nextLogits = logits[0..., -1, 0...]
+                    var inputIds = truncatedPrompt
+                    let cache = model.newCache(parameters: parameters)
+
+                    if inputIds.count > 1 {
+                        let prefill = Array(inputIds.dropLast())
+                        let inputMLX = MLXArray(prefill).reshaped([1, -1])
+                        _ = try model.forwardIncremental(input: inputMLX, cache: cache)
+                        inputIds = [inputIds.last!]
+                    }
+
+                    let maxTokens = min(parameters.maxTokens, model.maxContextLength)
                     
-                    // Sample
-                    let nextToken = sample(
-                        logits: nextLogits,
-                        temperature: parameters.temperature,
-                        topP: parameters.topP
-                    ).item(Int.self)
-                    
-                    // Decode
-                    if let text = tokenizer.decode(tokens: [nextToken]) {
-                        continuation.yield(GenerationResponse(text: text, token: nextToken))
+                    for _ in 0..<maxTokens {
+                        guard !Task.isCancelled else { break }
+                        
+                        let inputMLX = MLXArray(inputIds).reshaped([1, 1])
+                        let logits = try model.forwardIncremental(input: inputMLX, cache: cache)
+                        let nextLogits = logits[0..., -1, 0...]
+                        
+                        let nextToken = try sampleToken(from: nextLogits)
+                        
+                        if let text = tokenizer.decode(tokens: [nextToken]) {
+                            continuation.yield(.init(text: text, token: nextToken))
+                        }
+                        
+                        inputIds = [nextToken]
+                        
+                        if nextToken == tokenizer.eosTokenId {
+                            break
+                        }
                     }
                     
-                    inputIds = [nextToken]
+                    continuation.finish()
                     
-                    // Check for EOS
-                    if nextToken == tokenizer.eosTokenId {
-                        break
-                    }
+                } catch is CancellationError {
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
                 }
-                
-                continuation.finish()
             }
         }
     }
     
+    private func sampleToken(from logits: MLXArray) throws -> Int {
+        let sampled = sample(
+            logits: logits,
+            temperature: parameters.temperature,
+            topP: parameters.topP
+        )
+        
+        guard let token = sampled.item(Int.self) as Int? else {
+            throw MLXError.generationFailed("Invalid token sampled")
+        }
+        
+        return token
+    }
+
     private func sample(logits: MLXArray, temperature: Float, topP: Float) -> MLXArray {
         var processed = logits
         
@@ -278,11 +260,12 @@ struct LLMGenerator {
             let sortedProbs = probs[sortedIndices]
             let cumsumProbs = cumsum(sortedProbs, axis: -1)
 
-            // Mask where cumulative probability > topP, but keep at least one token.
-            // We want to mask where (cumsum - prob) > topP.
             let maskToRemove = (cumsumProbs - sortedProbs) > topP
 
-            // Apply mask
+            if maskToRemove.all().item(Bool.self) == true {
+                return categorical(processed)
+            }
+
             processed = processed.at(sortedIndices[maskToRemove]).set(-Float.infinity)
         }
         
@@ -292,7 +275,7 @@ struct LLMGenerator {
 
 // MARK: - Supporting Types
 
-struct GenerationParameters {
+struct GenerationParameters: Sendable {
     var temperature: Float = 0.7
     var topP: Float = 0.9
     var maxTokens: Int = 1024
@@ -300,12 +283,12 @@ struct GenerationParameters {
     static let `default` = GenerationParameters()
 }
 
-struct GenerationResponse {
+struct GenerationResponse: Sendable {
     let text: String
     let token: Int
 }
 
-struct LLMMessage {
+struct LLMMessage: Sendable {
     let role: String
     let content: String
 }
