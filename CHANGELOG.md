@@ -18,3 +18,7 @@ All notable changes to this project will be documented in this file.
 - Offloaded `importChats` to a detached background task to prevent blocking the main thread during large file imports.
 - Replaced N+1 in-memory search filter with SwiftData `#Predicate` in `ConversationSidebar`, optimizing search complexity from O(N*M) to O(1) database query.
 - Removed N+1 database save calls during token generation, moving persistence to end-of-stream to significantly reduce I/O overhead.
+- Solved N+1 query issue in conversation list by denormalizing `lastMessagePreview` and `messageCount` to the `Chat` model, reducing database fetches from O(N) to O(1) during list rendering.
+
+### Accessibility
+- Added accessibility labels and traits to conversation list items.
