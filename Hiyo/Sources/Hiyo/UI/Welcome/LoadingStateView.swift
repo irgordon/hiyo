@@ -20,7 +20,8 @@ struct LoadingStateView: View {
                 
                 Circle()
                     .trim(from: 0, to: provider.loadingProgress)
-                    .stroke(.accent, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                    // Fix: .accent is not a member of ShapeStyle, use Color.accentColor
+                    .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 4, lineCap: .round))
                     .frame(width: 80, height: 80)
                     .rotationEffect(.degrees(-90))
                     .animation(.easeInOut(duration: 0.3), value: provider.loadingProgress)

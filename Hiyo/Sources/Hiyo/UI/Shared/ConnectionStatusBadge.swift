@@ -8,7 +8,8 @@
 import SwiftUI
 
 struct ConnectionStatusBadge: View {
-    @ObservedObject var provider: MLXProvider
+    // Fix: Removed @ObservedObject as MLXProvider uses @Observable
+    var provider: MLXProvider
     
     var body: some View {
         HStack(spacing: 6) {

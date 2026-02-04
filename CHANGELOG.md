@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.0.1] - 2024-05-24
+
+### Architecture
+- Introduced `NavigationCoordinator` to centralize app navigation logic (sidebar, inspector, chat selection) using `@Observable` and `@MainActor` isolation.
+- Refactored `ContentView` and `HiyoApp` to utilize `NavigationCoordinator`, removing scattered state management.
+- Enforced strict `@MainActor` isolation on `ChatView` and `ConversationInspector` to ensure UI correctness with SwiftData.
+- Updated `ConversationSidebar` to use `ChatSummary` projection via SwiftData `@Query`, eliminating potential N+1 relationship faults in the list view.
+- Ensured consistent dependency injection for `HiyoStore` and `MLXProvider` across the view hierarchy.
+
+### Performance
+- Eliminated potential main-thread bottlenecks by using lightweight `ChatSummary` structs for the sidebar list, preventing accidental full object instantiation.
+- Improved sidebar search performance by leveraging SwiftData predicates directly on the summary projection.
+
 ## [v1.0.0] - 2024-05-23
 
 ### Refactor

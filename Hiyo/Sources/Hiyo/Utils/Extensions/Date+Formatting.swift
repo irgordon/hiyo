@@ -112,7 +112,7 @@ extension Date {
     /// Groups conversations by time period
     var conversationGroup: ConversationGroup {
         let calendar = Calendar.current
-        let now = Date()
+        // Fix: Removed unused 'now' variable
         
         if calendar.isDateInToday(self) {
             return .today

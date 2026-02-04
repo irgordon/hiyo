@@ -3,13 +3,13 @@
 //  Hiyo
 //
 //  Individual conversation list item.
-//  Updated to use Chat for zero‑fault list performance.
+//  Updated to use ChatSummary for zero‑fault list performance.
 //
 
 import SwiftUI
 
 struct ConversationRow: View {
-    let chat: Chat
+    let chat: ChatSummary
     let isSelected: Bool
     
     private var iconName: String {
@@ -38,7 +38,8 @@ struct ConversationRow: View {
                 
                 Image(systemName: iconName)
                     .font(.system(size: 14))
-                    .foregroundStyle(isSelected ? .accentColor : .secondary)
+                    // Fix: .accentColor is not a member of ShapeStyle, use Color.accentColor explicitly
+                    .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
             }
             
             // Content

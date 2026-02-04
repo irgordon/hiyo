@@ -9,7 +9,8 @@ import SwiftUI
 import MLX
 
 struct ModelsSettings: View {
-    @StateObject private var provider = MLXProvider()
+    // Fix: Using @State instead of @StateObject because MLXProvider is @Observable
+    @State private var provider = MLXProvider()
     @State private var showingAddModel = false
     
     var body: some View {

@@ -96,7 +96,8 @@ struct PerformanceSettings: View {
                 }
             }
             
-            Section("Hardware") {
+            // Fix: Explicitly define header as Text view to help type inference
+            Section(header: Text("Hardware")) {
                 LabeledContent("Device", value: hardwareInfo)
                 LabeledContent("MLX Version", value: MLX.version)
                 LabeledContent("GPU Available", value: MLX.GPU.isAvailable ? "Yes" : "No")
