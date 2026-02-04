@@ -22,25 +22,30 @@ struct ContentView: View {
     @State private var columnVisibility = NavigationSplitViewVisibility.all
 
     var body: some View {
-        NavigationSplitView(columnVisibility: $columnVisibility) {
-            // MARK: Sidebar
-            ConversationSidebar()
-                .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 320)
-                .toolbar(removing: .sidebarToggle) // We implement our own
-        } content: {
-            // MARK: Content
-            if let chat = nav.selectedChat {
-                ChatView(chat: chat, store: store, provider: provider)
-            } else {
-                HiyoWelcomeView(provider: provider)
+        NavigationSplitView(
+            columnVisibility: $columnVisibility,
+            sidebar: {
+                // MARK: Sidebar
+                ConversationSidebar()
+                    .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 320)
+                    .toolbar(removing: .sidebarToggle) // We implement our own
+            },
+            content: {
+                // MARK: Content
+                if let chat = nav.selectedChat {
+                    ChatView(chat: chat, store: store, provider: provider)
+                } else {
+                    HiyoWelcomeView(provider: provider)
+                }
+            },
+            detail: {
+                // MARK: Inspector
+                if nav.isInspectorVisible, let chat = nav.selectedChat {
+                    ConversationInspector(chat: chat, provider: provider)
+                        .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 300)
+                }
             }
-        } detail: {
-            // MARK: Inspector
-            if nav.isInspectorVisible, let chat = nav.selectedChat {
-                ConversationInspector(chat: chat, provider: provider)
-                    .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 300)
-            }
-        }
+        )
         .navigationSplitViewStyle(.balanced)
         .toolbar {
             ToolbarItemGroup(placement: .navigation) {
@@ -94,14 +99,14 @@ struct ContentView: View {
                 .disabled(nav.selectedChat == nil)
                 .help("Toggle Inspector")
 
-                Menu {
+                Menu(content: {
                     Button("Export as Text...") { exportAsText() }
                     Button("Export as JSON...") { exportAsJSON() }
                     Divider()
                     Button("Print...") { printConversation() }
-                } label: {
+                }, label: {
                     Image(systemName: "square.and.arrow.up")
-                }
+                })
                 .menuStyle(.borderedButton)
                 .disabled(nav.selectedChat == nil)
             }

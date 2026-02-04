@@ -83,7 +83,11 @@ struct ConversationSidebar: View {
                 debouncedSearchText = searchText
             } catch {}
         }
-        .alert("Delete Conversation?", isPresented: $showingDeleteConfirmation, presenting: summaryToDelete) { summary in
+        .alert(
+            "Delete Conversation?",
+            isPresented: $showingDeleteConfirmation,
+            presenting: summaryToDelete
+        ) { summary in
             Button("Cancel", role: .cancel) { }
             Button("Delete", role: .destructive) {
                 deleteSummary(summary)

@@ -33,11 +33,11 @@ struct HiyoApp: App {
 
         // Initialize store and coordinator
         do {
-            let s = try HiyoStore()
-            let p = MLXProvider()
-            _store = State(initialValue: s)
-            _provider = State(initialValue: p)
-            _nav = State(initialValue: NavigationCoordinator(store: s, provider: p))
+            let localStore = try HiyoStore()
+            let localProvider = MLXProvider()
+            _store = State(initialValue: localStore)
+            _provider = State(initialValue: localProvider)
+            _nav = State(initialValue: NavigationCoordinator(store: localStore, provider: localProvider))
         } catch {
             fatalError("Failed to initialize HiyoStore: \(error)")
         }
