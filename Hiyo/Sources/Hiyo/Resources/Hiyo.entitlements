@@ -2,44 +2,16 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!-- App Sandbox - Required for App Store and security -->
+    <!-- App Sandbox - Required for security and App Store -->
     <key>com.apple.security.app-sandbox</key>
     <true/>
-    
-    <!-- File Access - User-selected files only (exports/imports) -->
+
+    <!-- File Access - User-selected files only (imports/exports) -->
     <key>com.apple.security.files.user-selected.read-write</key>
     <true/>
-    
-    <!-- Application Support for model storage -->
-    <key>com.apple.security.application-groups</key>
-    <array>
-        <string>ai.hiyo.mac</string>
-    </array>
-    
-    <!-- Network Client - Required for downloading models from Hugging Face -->
+
+    <!-- Temporary Network Access (for initial model downloads only) -->
     <key>com.apple.security.network.client</key>
     <true/>
-    
-    <!-- Hardened Runtime - Prevent code injection -->
-    <key>com.apple.security.cs.allow-jit</key>
-    <false/>
-    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
-    <false/>
-    <key>com.apple.security.cs.disable-library-validation</key>
-    <false/>
-    <key>com.apple.security.cs.debugger</key>
-    <false/>
-    
-    <!-- Disable dangerous entitlements -->
-    <key>com.apple.security.automation.apple-events</key>
-    <false/>
-    <key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
-    <array/>
-    
-    <!-- Keychain access for encryption keys -->
-    <key>keychain-access-groups</key>
-    <array>
-        <string>ai.hiyo.mac</string>
-    </array>
 </dict>
 </plist>
