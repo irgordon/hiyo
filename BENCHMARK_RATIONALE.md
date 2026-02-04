@@ -22,3 +22,26 @@ The optimization moves the blocking I/O operations in `secureDelete` to a backgr
 *   **Optimized:** The main thread is blocked only for the time it takes to dispatch the asynchronous task (microseconds).
 
 This change converts a synchronous, blocking operation into an asynchronous one, ensuring the UI remains responsive during data clearing operations.
+
+## Asynchronous Chat Duplication
+
+### Context
+The `HiyoStore.duplicateChat(_:)` function creates a deep copy of a `Chat` and all its associated `Message` objects. This involves iterating through the message array, creating new `Message` instances, copying properties, and appending them to the new `Chat`.
+
+### Performance Issue
+For chats with a large number of messages (e.g., >1000), this operation performs significant object allocation and property copying on the main thread. Since `HiyoStore` is `@MainActor` bound, this blocks UI updates, causing the application to freeze or stutter during the duplication process.
+
+### Optimization Strategy
+The optimization moves the duplication logic to a `Task.detached` block. This offloads the heavy lifting (iteration and object creation) to a background thread.
+1. Capture the `Chat.id` and other necessary properties.
+2. Launch a detached task.
+3. Create a new `ModelContext` for the background task using the `ModelContainer`.
+4. Fetch the original chat by ID in the background context.
+5. Perform the deep copy.
+6. Save the background context.
+7. Update the main actor state (`@Published chats`) with the new chat (refetching on main thread).
+
+### Expected Improvement
+*   **Metric:** Main Thread Block Time.
+*   **Baseline:** The main thread is blocked for the duration of the entire copy operation (`O(N)` where N is the number of messages).
+*   **Optimized:** The main thread is blocked only for the time to dispatch the task and process the completion handler (negligible).
