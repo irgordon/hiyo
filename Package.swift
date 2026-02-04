@@ -8,8 +8,6 @@ let package = Package(
         .macOS(.v14)
     ],
     products: [
-        // Hiyo is a macOS app built via SPM + Xcode integration.
-        // The executable target provides the app’s entry point.
         .executable(name: "Hiyo", targets: ["Hiyo"])
     ],
     dependencies: [
@@ -18,6 +16,7 @@ let package = Package(
         .package(url: "https://github.com/huggingface/swift-transformers.git", exact: "0.1.0")
     ],
     targets: [
+        // MARK: - Main App Target
         .executableTarget(
             name: "Hiyo",
             dependencies: [
@@ -27,21 +26,36 @@ let package = Package(
                 .product(name: "MLXOptimizers", package: "mlx-swift"),
                 .product(name: "Transformers", package: "swift-transformers")
             ],
+            path: "Hiyo/Sources/Hiyo",
             resources: [
-                // Ensures icons, prompts, configs, and other assets are bundled.
                 .process("Resources")
             ],
             swiftSettings: [
-                // Only enable StrictConcurrency if required by your architecture.
-                // Remove this line if not strictly necessary.
+                // Keep StrictConcurrency only if required by your architecture.
                 // .enableExperimentalFeature("StrictConcurrency")
+            ],
+            linkerSettings: [
+                .linkedFramework("Security")
+                // CryptoKit is a Swift module, not a framework — no linker entry needed.
             ]
         ),
+
+        // MARK: - Unit Tests
         .testTarget(
             name: "HiyoTests",
             dependencies: ["Hiyo"],
+            path: "Hiyo/Tests/HiyoTests",
             resources: [
-                // Allows test fixtures, sample JSON, etc.
+                .process("Resources")
+            ]
+        ),
+
+        // MARK: - UI Tests
+        .testTarget(
+            name: "HiyoUITests",
+            dependencies: ["Hiyo"],
+            path: "Hiyo/Tests/HiyoUITests",
+            resources: [
                 .process("Resources")
             ]
         )
