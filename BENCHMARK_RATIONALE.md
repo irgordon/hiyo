@@ -22,3 +22,38 @@ The optimization moves the blocking I/O operations in `secureDelete` to a backgr
 *   **Optimized:** The main thread is blocked only for the time it takes to dispatch the asynchronous task (microseconds).
 
 This change converts a synchronous, blocking operation into an asynchronous one, ensuring the UI remains responsive during data clearing operations.
+
+# Benchmark Rationale: Duplicate Chat Optimization
+
+## Optimization Description
+The `duplicateChat` method in `HiyoStore` was identified as a performance bottleneck. The original implementation iterated through all messages in a chat, creating new `Message` objects and appending them to a new `Chat` object, all on the Main Actor. For chats with thousands of messages, this operation (combined with SwiftData's tracking overhead) caused noticeable UI freezes.
+
+The optimization moves this entire operation to a `Task.detached` block, utilizing a background `ModelContext` to perform the fetch, duplication, and insertion. The main thread is only involved in initiating the task and updating the UI once the operation is complete.
+
+## Theoretical Performance Improvement
+- **Baseline (Blocking)**: $O(N)$ where $N$ is the number of messages. Blocking time includes:
+  - Fetching messages (if faulting)
+  - Allocating $N$ `Message` objects
+  - Updating SwiftData relationships
+  - `modelContext.save()` (disk I/O)
+- **Optimized (Non-blocking)**: $O(1)$ blocking time on the Main Thread. The blocking time is reduced to:
+  - Creating a `Task`
+  - Fetching `modelContainer` reference
+  - (Microseconds range)
+
+The heavy lifting (I/O and allocation) happens in the background.
+
+## Benchmark Verification
+A benchmark file has been added at `Hiyo/Sources/Hiyo/Benchmarks/DuplicateChatBenchmark.swift`.
+
+### Expected Results
+Running `DuplicateChatBenchmark.run(messageCount: 1000)` should yield:
+- **Baseline**: > 100ms (depending on device speed and disk I/O)
+- **Optimized**: < 1ms (Main Thread blocking time)
+
+This represents a near-infinite improvement in "UI responsiveness" during the operation.
+
+## Correctness Considerations
+- **Thread Safety**: Used `Task.detached` with a fresh `ModelContext` created from the `ModelContainer` to ensure SwiftData concurrency rules are respected.
+- **Data Integrity**: Messages are explicitly sorted by `timestamp` during duplication to guarantee order preservation in the new chat, addressing a known SwiftData behavior where relationship order might be undefined after a fetch.
+- **UI Updates**: The UI (`chats` array and `currentChat` selection) is updated on the Main Actor after the background task completes and the data is committed.
