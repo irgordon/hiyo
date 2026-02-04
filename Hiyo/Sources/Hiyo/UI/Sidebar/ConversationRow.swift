@@ -22,7 +22,7 @@ struct ConversationRow: View {
     }
     
     private var messagePreview: String {
-        chat.messages.last?.content ?? "No messages"
+        chat.lastMessagePreview ?? chat.messages.last?.content ?? "No messages"
     }
     
     var body: some View {
@@ -59,8 +59,8 @@ struct ConversationRow: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                 
-                if chat.messages.count > 0 {
-                    Text("\(chat.messages.count)")
+                if chat.messageCount > 0 {
+                    Text("\(chat.messageCount)")
                         .font(.caption2)
                         .foregroundStyle(.secondary.opacity(0.7))
                 }
@@ -71,5 +71,8 @@ struct ConversationRow: View {
         .contentShape(Rectangle())
         .background(isSelected ? Color.accentColor.opacity(0.08) : Color.clear)
         .cornerRadius(6)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(chat.title), \(messagePreview), \(chat.messageCount) messages")
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 }

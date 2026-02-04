@@ -36,6 +36,12 @@ final class HiyoStore: ObservableObject {
         self.modelContext.autosaveEnabled = true
         
         fetchChats()
+
+        // Perform migration for denormalized fields
+        let container = modelContainer
+        Task.detached {
+            try? await Self.performMigration(container: container)
+        }
     }
     
     // MARK: - Chat Management
@@ -96,6 +102,10 @@ final class HiyoStore: ObservableObject {
                 newChat.messages.append(newMessage)
             }
 
+            // Update denormalized fields
+            newChat.messageCountCache = sortedMessages.count
+            newChat.lastMessagePreview = sortedMessages.last?.content
+
             context.insert(newChat)
 
             do {
@@ -152,6 +162,10 @@ final class HiyoStore: ObservableObject {
         chat.messages.append(message)
         chat.modifiedAt = Date()
         
+        // Update denormalized fields
+        chat.lastMessagePreview = sanitizedContent
+        chat.messageCountCache += 1
+
         do {
             try modelContext.save()
         } catch {
@@ -165,6 +179,10 @@ final class HiyoStore: ObservableObject {
         chat.messages.removeAll()
         chat.modifiedAt = Date()
         
+        // Update denormalized fields
+        chat.lastMessagePreview = nil
+        chat.messageCountCache = 0
+
         do {
             try modelContext.save()
         } catch {
@@ -234,6 +252,12 @@ final class HiyoStore: ObservableObject {
                 newChat.messages.append(newMsg)
             }
             
+            // Update denormalized fields
+            newChat.messageCountCache = chatDTO.messages.count
+            // Assuming messages in DTO might not be sorted, we find the latest
+            let lastMsg = chatDTO.messages.max(by: { $0.timestamp < $1.timestamp })
+            newChat.lastMessagePreview = lastMsg?.content
+
             modelContext.insert(newChat)
             newChats.append(newChat)
         }
@@ -275,6 +299,29 @@ final class HiyoStore: ObservableObject {
     
     // MARK: - Private Methods
     
+    private static func performMigration(container: ModelContainer) async throws {
+        let context = ModelContext(container)
+        // Optimization: Only fetch chats that might need migration (cache is 0)
+        let predicate = #Predicate<Chat> { $0.messageCountCache == 0 }
+        let descriptor = FetchDescriptor<Chat>(predicate: predicate)
+        let chats = try context.fetch(descriptor)
+
+        var modified = false
+        for chat in chats {
+            // Check if truly unmigrated (has messages)
+            if !chat.messages.isEmpty {
+                chat.messageCountCache = chat.messages.count
+                // Sort to find the true last message
+                chat.lastMessagePreview = chat.messages.sorted { $0.timestamp < $1.timestamp }.last?.content
+                modified = true
+            }
+        }
+
+        if modified {
+            try context.save()
+        }
+    }
+
     private static func retrieveOrCreateEncryptionKey() throws -> SymmetricKey {
         let keyTag = "ai.hiyo.mac.encryptionkey"
         

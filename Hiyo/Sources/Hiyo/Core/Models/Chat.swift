@@ -20,6 +20,10 @@ final class Chat {
     
     var modelIdentifier: String
     
+    // Denormalized fields for performance (N+1 avoidance)
+    var lastMessagePreview: String?
+    var messageCountCache: Int = 0
+
     init(title: String, modelIdentifier: String) {
         self.id = UUID()
         self.title = title
@@ -31,7 +35,11 @@ final class Chat {
     // MARK: - Computed Properties
     
     var messageCount: Int {
-        messages.count
+        // Fallback to relationship if cache is 0 but messages exist (e.g. migration pending)
+        if messageCountCache == 0 && !messages.isEmpty {
+            return messages.count
+        }
+        return messageCountCache
     }
     
     var lastMessage: Message? {
@@ -68,6 +76,7 @@ final class Chat {
 extension Chat: Codable {
     enum CodingKeys: String, CodingKey {
         case id, title, createdAt, modifiedAt, messages, modelIdentifier
+        case lastMessagePreview, messageCountCache
     }
     
     convenience init(from decoder: Decoder) throws {
@@ -81,6 +90,9 @@ extension Chat: Codable {
         self.createdAt = try container.decode(Date.self, forKey: .createdAt)
         self.modifiedAt = try container.decode(Date.self, forKey: .modifiedAt)
         self.messages = try container.decode([Message].self, forKey: .messages)
+
+        self.lastMessagePreview = try container.decodeIfPresent(String.self, forKey: .lastMessagePreview)
+        self.messageCountCache = try container.decodeIfPresent(Int.self, forKey: .messageCountCache) ?? 0
     }
     
     func encode(to encoder: Encoder) throws {
@@ -91,5 +103,7 @@ extension Chat: Codable {
         try container.encode(modifiedAt, forKey: .modifiedAt)
         try container.encode(messages, forKey: .messages)
         try container.encode(modelIdentifier, forKey: .modelIdentifier)
+        try container.encode(lastMessagePreview, forKey: .lastMessagePreview)
+        try container.encode(messageCountCache, forKey: .messageCountCache)
     }
 }
