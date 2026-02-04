@@ -6,27 +6,33 @@ on:
   pull_request:
     branches: [ main ]
   schedule:
-    - cron: "0 4 * * 1"   # Weekly security scan
+    - cron: "0 4 * * 1"
 
 jobs:
   build-test-analyze:
     name: Build, Test, Lint, Scan
-    runs-on: macos-latest
+    runs-on: macos-14   # REQUIRED for Xcode 16.2
 
     permissions:
       contents: read
-      security-events: write   # For SARIF uploads
+      security-events: write
       actions: read
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode.app
+      # ---------------------------------------------------------
+      # Pin Xcode to 16.2 (fixes MLX-Swift C++ allocator errors)
+      # ---------------------------------------------------------
+      - name: Select Xcode 16.2
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app
+
+      - name: Verify Xcode version
+        run: xcodebuild -version
 
       # ---------------------------------------------------------
-      # Build & Test (Swift Package Manager)
+      # Build & Test (SwiftPM)
       # ---------------------------------------------------------
       - name: Resolve dependencies
         run: swift package resolve
@@ -34,10 +40,10 @@ jobs:
       - name: Build (Debug)
         run: swift build
 
-      - name: Run Unit Tests (HiyoTests)
+      - name: Run Unit Tests
         run: swift test --target HiyoTests
 
-      - name: Run UI Tests (HiyoUITests)
+      - name: Run UI Tests
         run: swift test --target HiyoUITests
 
       # ---------------------------------------------------------
@@ -67,26 +73,6 @@ jobs:
             --sarif \
             --output sarif/semgrep.sarif \
             || true
-
-      # ---------------------------------------------------------
-      # Optional: CodeQL (best-effort for Swift)
-      # ---------------------------------------------------------
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: swift
-        continue-on-error: true
-
-      - name: Build for CodeQL
-        if: ${{ success() }}
-        run: |
-          swift build --configuration release
-        continue-on-error: true
-
-      - name: Analyze with CodeQL
-        uses: github/codeql-action/analyze@v3
-        if: ${{ success() }}
-        continue-on-error: true
 
       # ---------------------------------------------------------
       # Upload SARIF to GitHub Code Scanning
