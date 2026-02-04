@@ -1,0 +1,72 @@
+name: "Static Analysis (SwiftLint + Semgrep)"
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: "0 4 * * 1"   # Weekly scan
+
+jobs:
+  static-analysis:
+    name: Run SwiftLint & Semgrep and Upload SARIF
+    runs-on: macos-latest
+
+    permissions:
+      contents: read
+      security-events: write   # Required for SARIF upload
+      actions: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ---------------------------------------------------------
+      # Install SwiftLint
+      # ---------------------------------------------------------
+      - name: Install SwiftLint
+        run: |
+          brew install swiftlint
+
+      # ---------------------------------------------------------
+      # Run SwiftLint and output SARIF
+      # ---------------------------------------------------------
+      - name: Run SwiftLint (SARIF)
+        run: |
+          mkdir -p sarif
+          swiftlint lint --reporter sarif > sarif/swiftlint.sarif || true
+
+      # ---------------------------------------------------------
+      # Install Semgrep
+      # ---------------------------------------------------------
+      - name: Install Semgrep
+        run: |
+          brew install semgrep
+
+      # ---------------------------------------------------------
+      # Run Semgrep with Swift rules and output SARIF
+      # ---------------------------------------------------------
+      - name: Run Semgrep (SARIF)
+        run: |
+          mkdir -p sarif
+          semgrep scan \
+            --config=p/ci \
+            --config=p/security-audit \
+            --config=p/swift \
+            --sarif \
+            --output sarif/semgrep.sarif \
+            || true
+
+      # ---------------------------------------------------------
+      # Upload SARIF results to GitHub Code Scanning
+      # ---------------------------------------------------------
+      - name: Upload SwiftLint SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: sarif/swiftlint.sarif
+
+      - name: Upload Semgrep SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: sarif/semgrep.sarif
