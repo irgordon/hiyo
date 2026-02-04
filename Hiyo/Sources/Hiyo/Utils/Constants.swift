@@ -131,12 +131,12 @@ enum StorageKeys {
 // MARK: - URLs
 
 enum AppURLs {
-    static let website = URL(string: "https://hiyo.ai")!
-    static let documentation = URL(string: "https://docs.hiyo.ai")!
-    static let github = URL(string: "https://github.com/hiyoai/hiyo")!
-    static let mlxCommunity = URL(string: "https://huggingface.co/mlx-community")!
-    static let ollama = URL(string: "https://ollama.ai")!
-    static let privacyPolicy = URL(string: "https://hiyo.ai/privacy")!
+    static let website = URL(string: "https://hiyo.ai") ?? URL(fileURLWithPath: "/")
+    static let documentation = URL(string: "https://docs.hiyo.ai") ?? URL(fileURLWithPath: "/")
+    static let github = URL(string: "https://github.com/hiyoai/hiyo") ?? URL(fileURLWithPath: "/")
+    static let mlxCommunity = URL(string: "https://huggingface.co/mlx-community") ?? URL(fileURLWithPath: "/")
+    static let ollama = URL(string: "https://ollama.ai") ?? URL(fileURLWithPath: "/")
+    static let privacyPolicy = URL(string: "https://hiyo.ai/privacy") ?? URL(fileURLWithPath: "/")
 }
 
 // MARK: - Error Messages

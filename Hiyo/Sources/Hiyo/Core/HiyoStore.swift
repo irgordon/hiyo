@@ -23,6 +23,9 @@ final class HiyoStore: ObservableObject {
         // Generate or retrieve encryption key
         self.encryptionKey = try Self.retrieveOrCreateEncryptionKey()
         
+        // Secure the storage directory
+        try Self.secureStorageDirectory()
+
         // Configure SwiftData with no cloud sync
         let schema = Schema([Chat.self, Message.self])
         let config = ModelConfiguration(
@@ -299,6 +302,18 @@ final class HiyoStore: ObservableObject {
     
     // MARK: - Private Methods
     
+    private static func secureStorageDirectory() throws {
+        let fileManager = FileManager.default
+        let appSupport = try fileManager.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+
+        // Enable encryption at rest for the entire storage directory
+        let attributes: [FileAttributeKey: Any] = [
+            .protectionKey: FileProtectionType.complete
+        ]
+
+        try fileManager.setAttributes(attributes, ofItemAtPath: appSupport.path)
+    }
+
     private static func performMigration(container: ModelContainer) async throws {
         let context = ModelContext(container)
         // Optimization: Only fetch chats that might need migration (cache is 0)
