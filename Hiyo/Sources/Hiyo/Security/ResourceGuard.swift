@@ -111,5 +111,4 @@ enum ResourceError: Error {
     }
 }
 
-import Darwin.mach.mach_init
-import Darwin.mach.task_info
+import Darwin
