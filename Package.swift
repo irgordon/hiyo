@@ -27,6 +27,10 @@ let package = Package(
                 .product(name: "Transformers", package: "swift-transformers")
             ],
             path: "Hiyo/Sources/Hiyo",
+            exclude: [
+                "Resources/Info.plist",
+                "Resources/Hiyo.entitlements"
+            ],
             resources: [
                 .process("Resources")
             ],

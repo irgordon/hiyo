@@ -323,6 +323,7 @@ enum SecurityEvent: String {
     case modelLoaded
     case modelUnloaded
     case modelLoadFailed
+    case generationCompleted
     
     // Data
     case exportOperation

@@ -35,15 +35,20 @@ actor ModelContainer {
         self.tokenizer = tokenizer
     }
 
-    func perform<T>(action: (LLMModel, Tokenizer) async throws -> T) async throws -> T {
+    func perform<T>(action: @Sendable (LLMModel, Tokenizer) async throws -> T) async throws -> T {
         return try await action(model, tokenizer)
     }
 }
 
 /// Abstract base for LLM models (Stub)
-class LLMModel {
-    func callAsFunction(_ input: MLXArray) -> MLXArray {
+class LLMModel: @unchecked Sendable {
+    func callAsFunction(_ input: MLXArray, cache: [Any]?) -> (MLXArray, [Any]?) {
         fatalError("LLMModel.callAsFunction stub called")
+    }
+
+    // Legacy support
+    func callAsFunction(_ input: MLXArray) -> MLXArray {
+        return self(input, cache: nil).0
     }
 }
 
