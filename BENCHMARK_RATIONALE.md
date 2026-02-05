@@ -138,3 +138,27 @@ We refactored `loadModel` to use `Task.detached(priority: .userInitiated)`.
 *   **Metric:** UI responsiveness during model load.
 *   **Baseline:** Potential frame drops during the initialization phase of the model loading.
 *   **Optimized:** Zero main thread impact during heavy loading operations; UI remains fully interactive (showing progress bars smoothly).
+
+# Benchmark Rationale: Offload Export Chats
+
+## Context
+The `HiyoStore.exportChats` method performs two heavy operations:
+1.  **JSON Encoding:** Serializing the entire chat history (potentially thousands of messages) into JSON.
+2.  **AES-GCM Encryption:** Encrypting the resulting JSON data.
+
+Previously, this function was marked `throws` and called directly on the `@MainActor` (as `HiyoStore` is main-actor isolated).
+
+## Performance Issue
+*   **Main Thread Blocking:** For large databases (e.g., 50MB of chat history), encoding and encryption can take several seconds. Executing this on the main thread freezes the application completely.
+*   **User Experience:** The user would see the "Beachball" cursor and the app would become unresponsive until the file write was complete.
+
+## Optimization Strategy
+We refactored the method to `async throws` and wrapped the heavy work in `Task.detached`.
+1.  **Data Capture:** We map the SwiftData models (`Chat`, `Message`) to simple, Sendable DTO structs (`ChatDTO`, `MessageDTO`) on the Main Actor. This is fast and necessary because SwiftData models are not Sendable.
+2.  **Offloading:** The DTOs are passed to a background thread where the computationally expensive `JSONEncoder` and `AES.GCM.seal` operations occur.
+
+## Expected Improvement
+*   **Metric:** Main Thread Block Duration.
+*   **Baseline:** `Time(Encode) + Time(Encrypt) + Time(Disk Write)`. For large data, this could be >1.0s.
+*   **Optimized:** `Time(Map to DTO)` (negligible, milliseconds).
+*   **Result:** The UI remains responsive (no freezing) while the export happens in the background.
