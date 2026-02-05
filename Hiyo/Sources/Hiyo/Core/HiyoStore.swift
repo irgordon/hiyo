@@ -198,26 +198,54 @@ final class HiyoStore {
     
     // MARK: - Data Export/Import
     
-    func exportChats(to url: URL) throws {
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        
+    func exportChats(to url: URL) async throws {
         // Validate extension
         guard url.pathExtension == "hiyo" || url.pathExtension == "encrypted" else {
             throw FileError.invalidPath
         }
-        
-        let data = try encoder.encode(chats)
-        
-        // Encrypt
-        let sealedBox = try AES.GCM.seal(data, using: encryptionKey)
-        
-        guard let combined = sealedBox.combined else {
-            throw SecurityError.encryptionFailed
+
+        // Map to DTOs on Main Actor (safe SwiftData access)
+        let chatDTOs = self.chats.map { chat in
+            ChatDTO(
+                id: chat.id,
+                title: chat.title,
+                createdAt: chat.createdAt,
+                modifiedAt: chat.modifiedAt,
+                messages: chat.messages.map { msg in
+                    MessageDTO(
+                        id: msg.id,
+                        content: msg.content,
+                        role: msg.role,
+                        timestamp: msg.timestamp,
+                        tokensUsed: msg.tokensUsed,
+                        latencyMs: msg.latencyMs
+                    )
+                },
+                modelIdentifier: chat.modelIdentifier
+            )
         }
         
-        try SecureFileManager.createSecureFile(at: url, contents: combined)
-        SecurityLogger.log(.exportOperation, details: "Exported to \(url.lastPathComponent)")
+        // Capture key for background task
+        let key = self.encryptionKey
+
+        // Offload encoding, encryption, and writing to detached task
+        try await Task.detached(priority: .userInitiated) {
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+
+            // Encode
+            let data = try encoder.encode(chatDTOs)
+
+            // Encrypt
+            let sealedBox = try AES.GCM.seal(data, using: key)
+
+            guard let combined = sealedBox.combined else {
+                throw SecurityError.encryptionFailed
+            }
+
+            try SecureFileManager.createSecureFile(at: url, contents: combined)
+            SecurityLogger.log(.exportOperation, details: "Exported to \(url.lastPathComponent)")
+        }.value
     }
     
     func importChats(from url: URL) async throws {

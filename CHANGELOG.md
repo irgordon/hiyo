@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Performance
+- Offloaded `exportChats` operation (JSON encoding and AES encryption) to a detached background task, preventing main thread blocking when exporting large conversation histories.
+
 ## [v1.0.1] - 2024-05-24
 
 ### Architecture
