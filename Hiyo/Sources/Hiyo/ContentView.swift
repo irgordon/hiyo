@@ -86,7 +86,7 @@ struct ContentView: View {
                         .frame(width: 20)
                 }
 
-                ConnectionStatusBadge(provider: provider)
+                ConnectionStatusBadge()
 
                 Button(action: {
                     withAnimation {
@@ -160,7 +160,7 @@ struct ContentView: View {
 }
 
 struct ConnectionStatusBadge: View {
-    var provider: MLXProvider
+    @Environment(MLXProvider.self) var provider
 
     var body: some View {
         HStack(spacing: 6) {

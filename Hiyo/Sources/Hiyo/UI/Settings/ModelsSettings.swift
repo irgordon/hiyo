@@ -9,7 +9,7 @@ import SwiftUI
 import MLX
 
 struct ModelsSettings: View {
-    @StateObject private var provider = MLXProvider()
+    @State private var provider = MLXProvider()
     @State private var showingAddModel = false
     
     var body: some View {
