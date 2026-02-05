@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
 ### Performance
 - Eliminated potential main-thread bottlenecks by using lightweight `ChatSummary` structs for the sidebar list, preventing accidental full object instantiation.
 - Improved sidebar search performance by leveraging SwiftData predicates directly on the summary projection.
+- Offloaded synchronous model loading I/O (file reading, JSON decoding, weights loading) to a detached background task, preventing main thread blocking during model initialization.
 
 ## [v1.0.0] - 2024-05-23
 

@@ -50,51 +50,53 @@ public func load(
 ) async throws -> (LLMModel, Tokenizer) {
     let modelDirectory = try await prepareModelDirectory(
         hub: hub, configuration: configuration, progressHandler: progressHandler)
-    let model = try loadSynchronous(modelDirectory: modelDirectory)
+    let model = try await loadLLM(modelDirectory: modelDirectory)
     let tokenizer = try await loadTokenizer(configuration: configuration, hub: hub)
 
     return (model, tokenizer)
 }
 
-func loadSynchronous(modelDirectory: URL) throws -> LLMModel {
-    // create the model (no weights loaded)
-    let configurationURL = modelDirectory.appending(component: "config.json")
-    let baseConfig = try JSONDecoder().decode(
-        BaseConfiguration.self, from: Data(contentsOf: configurationURL))
+func loadLLM(modelDirectory: URL) async throws -> LLMModel {
+    try await Task.detached(priority: .userInitiated) {
+        // create the model (no weights loaded)
+        let configurationURL = modelDirectory.appending(component: "config.json")
+        let baseConfig = try JSONDecoder().decode(
+            BaseConfiguration.self, from: Data(contentsOf: configurationURL))
 
-    let model = try baseConfig.modelType.createModel(configuration: configurationURL)
+        let model = try baseConfig.modelType.createModel(configuration: configurationURL)
 
-    // load the weights
-    var weights = [String: MLXArray]()
-    let enumerator = FileManager.default.enumerator(
-        at: modelDirectory, includingPropertiesForKeys: nil)!
-    for case let url as URL in enumerator {
-        if url.pathExtension == "safetensors" {
-            let w = try loadArrays(url: url)
-            for (key, value) in w {
-                weights[key] = value
+        // load the weights
+        var weights = [String: MLXArray]()
+        let enumerator = FileManager.default.enumerator(
+            at: modelDirectory, includingPropertiesForKeys: nil)!
+        for case let url as URL in enumerator {
+            if url.pathExtension == "safetensors" {
+                let w = try loadArrays(url: url)
+                for (key, value) in w {
+                    weights[key] = value
+                }
             }
         }
-    }
 
-    // per-model cleanup
-    weights = model.sanitize(weights: weights)
+        // per-model cleanup
+        weights = model.sanitize(weights: weights)
 
-    // quantize if needed
-    if let quantization = baseConfig.quantization {
-        quantize(model: model, groupSize: quantization.groupSize, bits: quantization.bits) {
-            path, module in
-            weights["\(path).scales"] != nil
+        // quantize if needed
+        if let quantization = baseConfig.quantization {
+            quantize(model: model, groupSize: quantization.groupSize, bits: quantization.bits) {
+                path, module in
+                weights["\(path).scales"] != nil
+            }
         }
-    }
 
-    // apply the loaded weights
-    let parameters = ModuleParameters.unflattened(weights)
-    try model.update(parameters: parameters, verify: [.all])
+        // apply the loaded weights
+        let parameters = ModuleParameters.unflattened(weights)
+        try model.update(parameters: parameters, verify: [.all])
 
-    eval(model)
+        eval(model)
 
-    return model
+        return model
+    }.value
 }
 
 /// Load and return the model and tokenizer wrapped in a ``ModelContainer`` (provides

@@ -43,7 +43,7 @@ public actor ModelContainer {
     public init(
         hub: HubApi, modelDirectory: URL, configuration: ModelConfiguration
     ) async throws {
-        self.model = try loadSynchronous(modelDirectory: modelDirectory)
+        self.model = try await loadLLM(modelDirectory: modelDirectory)
 
         let (tokenizerConfig, tokenizerData) = try await loadTokenizerConfig(
             configuration: configuration, hub: hub)
