@@ -26,15 +26,17 @@ final class ExportBenchmark {
         var chats: [Chat] = []
 
         print("🛠️  Generating data...")
-        for i in 0..<chatCount {
-            let chat = Chat(title: "Benchmark Chat \(i)", modelIdentifier: "test-model")
-            chat.createdAt = Date().addingTimeInterval(Double(-i * 3600))
+        for chatIndex in 0..<chatCount {
+            let chat = Chat(title: "Benchmark Chat \(chatIndex)", modelIdentifier: "test-model")
+            chat.createdAt = Date().addingTimeInterval(Double(-chatIndex * 3600))
             chat.modifiedAt = Date()
 
-            for j in 0..<messagesPerChat {
-                let msg = Message(content: "This is a benchmark message content used to simulate data volume. Index: \(j)", role: j % 2 == 0 ? .user : .assistant)
+            for messageIndex in 0..<messagesPerChat {
+                let content = "This is a benchmark message content used to simulate data volume. Index: \(messageIndex)"
+                let role: MessageRole = messageIndex % 2 == 0 ? .user : .assistant
+                let msg = Message(content: content, role: role)
                 msg.tokensUsed = 10
-                msg.timestamp = chat.createdAt.addingTimeInterval(Double(j * 60))
+                msg.timestamp = chat.createdAt.addingTimeInterval(Double(messageIndex * 60))
                 chat.messages.append(msg)
             }
             context.insert(chat)
@@ -57,7 +59,7 @@ final class ExportBenchmark {
 
         // Encrypt
         let sealedBox = try AES.GCM.seal(data, using: key)
-        let _ = sealedBox.combined
+        _ = sealedBox.combined
 
         let duration = Date().timeIntervalSince(start)
         print("✅ Export operation: \(String(format: "%.6f", duration))s")
