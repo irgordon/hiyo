@@ -14,7 +14,7 @@ enum SecurityLogger {
     
     /// Logs security event without sensitive data
     static func log(_ event: SecurityEvent, details: String = "") {
-        let timestamp = ISO8601DateFormatter().string(from: Date())
+        let timestamp = Date().iso8601Formatted
         let sanitizedDetails = sanitize(details)
         
         queue.async {

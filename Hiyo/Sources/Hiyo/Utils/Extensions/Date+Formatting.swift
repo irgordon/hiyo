@@ -8,6 +8,11 @@
 import Foundation
 
 extension Date {
+    private static let sharedISO8601Formatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        return formatter
+    }()
+
     /// Formats for conversation list display
     var conversationListFormatted: String {
         let calendar = Calendar.current
@@ -43,7 +48,7 @@ extension Date {
     
     /// Formats as ISO 8601 for storage
     var iso8601Formatted: String {
-        ISO8601DateFormatter().string(from: self)
+        Date.sharedISO8601Formatter.string(from: self)
     }
     
     /// Relative time description
@@ -102,7 +107,7 @@ extension Date {
 extension Date {
     /// Parses ISO 8601 string
     static func fromISO8601(_ string: String) -> Date? {
-        ISO8601DateFormatter().date(from: string)
+        Date.sharedISO8601Formatter.date(from: string)
     }
 }
 
