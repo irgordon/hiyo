@@ -89,7 +89,7 @@ final class HiyoStore {
         let chatID = chat.persistentModelID
         let container = modelContainer
         
-        Task.detached {
+        Task.detached(priority: .userInitiated) {
             let context = ModelContext(container)
 
             // Fetch original chat in background context
