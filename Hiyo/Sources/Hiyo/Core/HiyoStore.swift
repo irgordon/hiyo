@@ -100,19 +100,15 @@ final class HiyoStore {
             // Sort messages to guarantee order
             let sortedMessages = originalChat.messages.sorted { $0.timestamp < $1.timestamp }
 
-            var totalTokens = 0
             for message in sortedMessages {
                 let newMessage = Message(content: message.content, role: message.role)
                 newMessage.tokensUsed = message.tokensUsed
                 newMessage.latencyMs = message.latencyMs
                 newChat.messages.append(newMessage)
-                if let t = message.tokensUsed { totalTokens += t }
             }
 
             // Update denormalized fields
-            newChat.messageCountCache = sortedMessages.count
-            newChat.lastMessagePreview = sortedMessages.last?.preview
-            newChat.totalTokensCache = totalTokens
+            newChat.updateDerivedFields()
 
             context.insert(newChat)
 

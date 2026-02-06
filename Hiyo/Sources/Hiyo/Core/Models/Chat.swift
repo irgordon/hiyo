@@ -21,9 +21,9 @@ final class Chat {
     var modelIdentifier: String
     
     // Denormalized fields for performance (N+1 avoidance)
-    var lastMessagePreview: String?
-    var messageCountCache: Int = 0
-    var totalTokensCache: Int = 0
+    private(set) var lastMessagePreview: String?
+    private(set) var messageCountCache: Int = 0
+    private(set) var totalTokensCache: Int = 0
 
     init(title: String, modelIdentifier: String) {
         self.id = UUID()
