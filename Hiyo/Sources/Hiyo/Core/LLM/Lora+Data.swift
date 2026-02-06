@@ -44,13 +44,14 @@ func loadJSONL(url: URL) throws -> [String] {
         let text: String?
     }
 
+    let decoder = JSONDecoder()
     return try String(contentsOf: url)
         .components(separatedBy: .newlines)
         .filter {
             $0.first == "{"
         }
         .compactMap {
-            try JSONDecoder().decode(Line.self, from: $0.data(using: .utf8)!).text
+            try decoder.decode(Line.self, from: $0.data(using: .utf8)!).text
         }
 }
 
