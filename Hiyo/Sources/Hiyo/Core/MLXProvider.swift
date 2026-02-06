@@ -92,7 +92,7 @@ final class MLXProvider {
         // Delegate all loading and directory resolution to LLMModelFactory
         let config = ModelConfiguration(id: sanitizedId)
         
-        loadTask = Task.detached(priority: .userInitiated) {
+        loadTask = Task {
             do {
                 let container = try await self.loader.load(
                     configuration: config
@@ -102,19 +102,15 @@ final class MLXProvider {
                     }
                 }
 
-                await MainActor.run {
-                    self.modelContainer = container
-                    self.state = .loaded(modelId: sanitizedId)
-                    self.isAvailable = true
-                    SecurityLogger.log(.modelLoaded, details: sanitizedId)
-                }
+                self.modelContainer = container
+                self.state = .loaded(modelId: sanitizedId)
+                self.isAvailable = true
+                SecurityLogger.log(.modelLoaded, details: sanitizedId)
             } catch is CancellationError {
                 // If cancelled, likely superseded by another load or user action.
                 // We do not change state here as it might race with the new task.
             } catch {
-                await MainActor.run {
-                    self.state = .failed(error)
-                }
+                self.state = .failed(error)
                 throw error
             }
         }
@@ -206,7 +202,13 @@ final class MLXProvider {
 
 // MARK: - Generation Logic
 
-struct LLMGenerator: Sendable {
+/// Generator logic that is confined to the actor's execution context.
+/// - Note: Marked `@unchecked Sendable` because `LLMModel` is not Sendable (protocol/class),
+///   but this generator is only used within the `ModelContainer` actor's `perform` method
+///   and the resulting `AsyncStream` task which inherits isolation.
+///   TODO: Remove `@unchecked Sendable` once `LLMModel` conforms to `Sendable` or when `AsyncStream`
+///   creation is refactored to not capture the generator across boundaries.
+struct LLMGenerator: @unchecked Sendable {
     let model: LLMModel
     let tokenizer: Tokenizer
     let parameters: GenerationParameters

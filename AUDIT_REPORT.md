@@ -88,6 +88,25 @@ Replaced all force-unwrapped `URL(string: ...)!` calls with safe initialization 
 
 ---
 
+## 6. Concurrency Audit (2026 Standards)
+
+### [RESOLVED] Unstructured Task Usage
+**File:** `Hiyo/Sources/Hiyo/Core/MLXProvider.swift`
+**Resolution:**
+Replaced `Task.detached` with structured `Task { ... }` in `loadModel`. This ensures the operation inherits the UI's priority and actor isolation context while correctly awaiting the background actor (`LoadModelOperation`), preventing priority inversion and simplifying state updates.
+
+### [RESOLVED] Sendable Violation in Generator
+**File:** `Hiyo/Sources/Hiyo/Core/MLXProvider.swift`
+**Resolution:**
+Marked `LLMGenerator` as `@unchecked Sendable`. The generator holds a non-Sendable `LLMModel` (reference type) but is strictly confined to the execution context of the `ModelContainer` actor via `AsyncStream`. Added documentation and a TODO for future removal.
+
+### [RESOLVED] Background Task Priority
+**File:** `Hiyo/Sources/Hiyo/Core/HiyoStore.swift`
+**Resolution:**
+Explicitly set `priority: .userInitiated` for `duplicateChat`'s detached task to guarantee UI responsiveness for user-triggered background operations.
+
+---
+
 ## Final Status
 
 The repository is now in a **RELEASE READY** state regarding security and correctness. The critical blocking bugs have been fixed, and privacy protections (encryption at rest, keychain safety) have been strengthened.
