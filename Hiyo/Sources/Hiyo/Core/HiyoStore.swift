@@ -200,32 +200,41 @@ final class HiyoStore {
             throw FileError.invalidPath
         }
 
-        // Map to DTOs on Main Actor (safe SwiftData access)
-        let chatDTOs = self.chats.map { chat in
-            ChatDTO(
-                id: chat.id,
-                title: chat.title,
-                createdAt: chat.createdAt,
-                modifiedAt: chat.modifiedAt,
-                messages: chat.messages.map { msg in
-                    MessageDTO(
-                        id: msg.id,
-                        content: msg.content,
-                        role: msg.role,
-                        timestamp: msg.timestamp,
-                        tokensUsed: msg.tokensUsed,
-                        latencyMs: msg.latencyMs
-                    )
-                },
-                modelIdentifier: chat.modelIdentifier
-            )
-        }
+        // Save context first to ensure background context sees latest data
+        try modelContext.save()
         
-        // Capture key for background task
+        // Capture key and container for background task
         let key = self.encryptionKey
+        let container = self.modelContainer
 
-        // Offload encoding, encryption, and writing to detached task
+        // Offload fetching, mapping, encoding, encryption, and writing to detached task
         try await Task.detached(priority: .userInitiated) {
+            let context = ModelContext(container)
+            // Fetch chats in background context to avoid main thread work
+            let descriptor = FetchDescriptor<Chat>(sortBy: [SortDescriptor(\.modifiedAt, order: .reverse)])
+            let chats = try context.fetch(descriptor)
+
+            // Map to DTOs
+            let chatDTOs = chats.map { chat in
+                ChatDTO(
+                    id: chat.id,
+                    title: chat.title,
+                    createdAt: chat.createdAt,
+                    modifiedAt: chat.modifiedAt,
+                    messages: chat.messages.map { msg in
+                        MessageDTO(
+                            id: msg.id,
+                            content: msg.content,
+                            role: msg.role,
+                            timestamp: msg.timestamp,
+                            tokensUsed: msg.tokensUsed,
+                            latencyMs: msg.latencyMs
+                        )
+                    },
+                    modelIdentifier: chat.modelIdentifier
+                )
+            }
+
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601
 
@@ -393,7 +402,7 @@ enum SecurityError: Error {
 
 // MARK: - Import DTOs
 
-private struct ChatDTO: Codable, Sendable {
+struct ChatDTO: Codable, Sendable {
     let id: UUID
     let title: String
     let createdAt: Date
@@ -402,7 +411,7 @@ private struct ChatDTO: Codable, Sendable {
     let modelIdentifier: String
 }
 
-private struct MessageDTO: Codable, Sendable {
+struct MessageDTO: Codable, Sendable {
     let id: UUID
     let content: String
     let role: MessageRole
