@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Performance
+- Optimized `SecurityLogger` timestamp generation by using a dedicated private static `ISO8601DateFormatter`, eliminating redundant object allocations during high-volume logging.
 - Fully offloaded `exportChats` operation (fetching, mapping, JSON encoding, and AES encryption) to a detached background task, eliminating main thread blocking when exporting large conversation histories.
 - Optimized `loadJSONL` by reusing a single `JSONDecoder` instance for all lines, reducing object allocation overhead during LoRA data loading.
 - Further optimized `loadJSONL` and `loadLines` to use `enumerateLines` instead of `components(separatedBy: .newlines)`, significantly reducing memory usage by avoiding large intermediate array allocations.
