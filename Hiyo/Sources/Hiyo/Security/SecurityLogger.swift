@@ -12,9 +12,14 @@ enum SecurityLogger {
     private static let logger = Logger(subsystem: "ai.hiyo.mac", category: "security")
     private static let queue = DispatchQueue(label: "ai.hiyo.securitylog", qos: .utility)
     
+    private static let dateFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        return formatter
+    }()
+
     /// Logs security event without sensitive data
     static func log(_ event: SecurityEvent, details: String = "") {
-        let timestamp = Date().iso8601Formatted
+        let timestamp = dateFormatter.string(from: Date())
         let sanitizedDetails = sanitize(details)
         
         queue.async {

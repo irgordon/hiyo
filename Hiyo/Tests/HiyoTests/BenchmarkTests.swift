@@ -22,4 +22,9 @@ final class BenchmarkTests: XCTestCase {
         // Run the comparison benchmark
         try await ExportComparison.run(chatCount: 50, messagesPerChat: 200)
     }
+
+    func testDateFormatterBenchmark() {
+        // Run the date formatter benchmark
+        DateFormatterBenchmark.run(iterations: 100_000)
+    }
 }
