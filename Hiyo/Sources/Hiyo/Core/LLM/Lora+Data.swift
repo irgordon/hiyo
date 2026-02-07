@@ -45,18 +45,38 @@ func loadJSONL(url: URL) throws -> [String] {
     }
 
     let decoder = JSONDecoder()
-    return try String(contentsOf: url)
-        .components(separatedBy: .newlines)
-        .filter {
-            $0.first == "{"
+    var lines = [String]()
+    var failure: Error?
+
+    try String(contentsOf: url).enumerateLines { line, stop in
+        guard line.first == "{" else { return }
+
+        // Note: We use ! here to match original behavior, assuming valid UTF8 from String
+        let data = line.data(using: .utf8)!
+
+        do {
+            if let text = try decoder.decode(Line.self, from: data).text {
+                lines.append(text)
+            }
+        } catch {
+            failure = error
+            stop = true
         }
-        .compactMap {
-            try decoder.decode(Line.self, from: $0.data(using: .utf8)!).text
-        }
+    }
+
+    if let failure {
+        throw failure
+    }
+
+    return lines
 }
 
 func loadLines(url: URL) throws -> [String] {
-    try String(contentsOf: url)
-        .components(separatedBy: .newlines)
-        .filter { !$0.isEmpty }
+    var lines = [String]()
+    try String(contentsOf: url).enumerateLines { line, _ in
+        if !line.isEmpty {
+            lines.append(line)
+        }
+    }
+    return lines
 }

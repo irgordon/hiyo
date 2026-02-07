@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Performance
 - Offloaded `exportChats` operation (JSON encoding and AES encryption) to a detached background task, preventing main thread blocking when exporting large conversation histories.
 - Optimized `loadJSONL` by reusing a single `JSONDecoder` instance for all lines, reducing object allocation overhead during LoRA data loading.
+- Further optimized `loadJSONL` and `loadLines` to use `enumerateLines` instead of `components(separatedBy: .newlines)`, significantly reducing memory usage by avoiding large intermediate array allocations.
 - Optimized `ISO8601DateFormatter` usage by introducing a shared instance, reducing object allocation overhead during date formatting and parsing.
 
 ## [v1.0.1] - 2024-05-24
