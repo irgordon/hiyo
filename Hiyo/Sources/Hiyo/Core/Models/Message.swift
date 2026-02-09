@@ -61,9 +61,21 @@ final class Message {
     // MARK: - Formatting
     
     func formattedTimestamp(style: DateFormatter.Style = .short) -> String {
-        let formatter = DateFormatter()
-        formatter.timeStyle = style
-        formatter.dateStyle = .none
+        // Optimization: Cache DateFormatter in thread dictionary to avoid expensive allocation
+        // while maintaining thread safety.
+        let key = "Hiyo.Message.formattedTimestamp.\(style.rawValue)"
+        let threadDictionary = Thread.current.threadDictionary
+
+        let formatter: DateFormatter
+        if let cached = threadDictionary[key] as? DateFormatter {
+            formatter = cached
+        } else {
+            formatter = DateFormatter()
+            formatter.timeStyle = style
+            formatter.dateStyle = .none
+            threadDictionary[key] = formatter
+        }
+
         return formatter.string(from: timestamp)
     }
 }

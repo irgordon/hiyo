@@ -27,4 +27,10 @@ final class BenchmarkTests: XCTestCase {
         // Run the date formatter benchmark
         DateFormatterBenchmark.run(iterations: 100_000)
     }
+
+    @MainActor
+    func testMessageTimestampBenchmark() {
+        // Run the message timestamp benchmark
+        MessageTimestampBenchmark.run(iterations: 10_000)
+    }
 }
