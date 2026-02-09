@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Performance
+- Optimized `Message.formattedTimestamp` by caching `DateFormatter` instances in `Thread.current.threadDictionary`, significantly reducing object allocation overhead during frequent timestamp formatting.
 - Optimized `SecurityLogger` timestamp generation by using a dedicated private static `ISO8601DateFormatter`, eliminating redundant object allocations during high-volume logging.
 - Fully offloaded `exportChats` operation (fetching, mapping, JSON encoding, and AES encryption) to a detached background task, eliminating main thread blocking when exporting large conversation histories.
 - Optimized `loadJSONL` by reusing a single `JSONDecoder` instance for all lines, reducing object allocation overhead during LoRA data loading.
