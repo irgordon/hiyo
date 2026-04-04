@@ -9,7 +9,7 @@ import SwiftUI
 import MLX
 
 struct ModelsSettings: View {
-    @StateObject private var provider = MLXProvider()
+    @State private var provider = MLXProvider()
     @State private var showingAddModel = false
     
     var body: some View {
@@ -80,7 +80,7 @@ struct ModelsSettings: View {
                     Text(provider.currentModel == "None" ? "No model loaded" : "Active: \(provider.currentModel.displayName)")
                         .font(.caption)
                     
-                    Text("MLX \(MLX.version)")
+                    Text("Powered by MLX")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -155,7 +155,7 @@ struct AddCustomModelSheet: View {
         
         Task {
             do {
-                try InputValidator.validateModelIdentifier(modelId)
+                _ = try InputValidator.validateModelIdentifier(modelId)
                 // Start download...
                 dismiss()
             } catch {
