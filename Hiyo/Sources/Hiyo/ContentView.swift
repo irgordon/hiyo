@@ -158,3 +158,31 @@ struct ContentView: View {
         // Ensure printed content respects user privacy and does not log raw data.
     }
 }
+
+struct ConnectionStatusBadge: View {
+    var provider: MLXProvider
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(statusColor)
+                .frame(width: 8, height: 8)
+            Text(statusText)
+                .font(.caption)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 4)
+        .background(.ultraThinMaterial)
+        .cornerRadius(6)
+    }
+
+    private var statusColor: Color {
+        if provider.isLoading { return .orange }
+        return provider.isAvailable ? .green : .red
+    }
+
+    private var statusText: String {
+        if provider.isLoading { return "Loading" }
+        return provider.isAvailable ? "Ready" : "Offline"
+    }
+}

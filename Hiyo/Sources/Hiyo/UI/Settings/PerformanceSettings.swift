@@ -18,7 +18,7 @@ struct PerformanceSettings: View {
     
     var body: some View {
         Form {
-            Section(header: Text("GPU Memory")) {
+            Section("GPU Memory") {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Text("Cache Limit")
@@ -48,7 +48,7 @@ struct PerformanceSettings: View {
                 LabeledContent("Peak Memory", value: "\(MLX.GPU.peakMemory / 1024 / 1024) MB")
             }
             
-            Section(header: Text("Generation Parameters")) {
+            Section("Generation Parameters") {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Text("Temperature")
@@ -96,8 +96,9 @@ struct PerformanceSettings: View {
                 }
             }
             
-            Section(header: Text("Hardware")) {
+            Section("Hardware") {
                 LabeledContent("Device", value: hardwareInfo)
+                LabeledContent("MLX Version", value: MLX.version)
                 LabeledContent("GPU Available", value: MLX.GPU.isAvailable ? "Yes" : "No")
             }
         }
