@@ -9,7 +9,7 @@ import SwiftUI
 import MLX
 
 struct ModelsSettings: View {
-    @StateObject private var provider = MLXProvider()
+    @State private var provider = MLXProvider()
     @State private var showingAddModel = false
     
     var body: some View {
@@ -155,7 +155,7 @@ struct AddCustomModelSheet: View {
         
         Task {
             do {
-                try InputValidator.validateModelIdentifier(modelId)
+                _ = try InputValidator.validateModelIdentifier(modelId)
                 // Start download...
                 dismiss()
             } catch {
