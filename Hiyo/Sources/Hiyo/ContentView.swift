@@ -112,12 +112,12 @@ struct ContentView: View {
             }
         }
         .task {
-            for await _ in NotificationCenter.default.notifications(named: .newConversation) {
+            for await _ in NotificationCenter.default.notifications(named: .hiyoNewConversation) {
                 nav.createNewChat()
             }
         }
         .task {
-            for await _ in NotificationCenter.default.notifications(named: .clearConversation) {
+            for await _ in NotificationCenter.default.notifications(named: .hiyoClearConversation) {
                 if let chat = nav.selectedChat {
                     store.clearMessages(in: chat)
                 }
@@ -145,44 +145,16 @@ struct ContentView: View {
 
     private func exportAsText() {
         // Downstream handlers must ensure sensitive content is handled safely.
-        NotificationCenter.default.post(name: .exportConversation, object: "txt")
+        NotificationCenter.default.post(name: .hiyoExportConversation, object: "txt")
     }
 
     private func exportAsJSON() {
         // Downstream handlers must ensure sensitive content is handled safely.
-        NotificationCenter.default.post(name: .exportConversation, object: "json")
+        NotificationCenter.default.post(name: .hiyoExportConversation, object: "json")
     }
 
     private func printConversation() {
         // Implementation for print dialog.
         // Ensure printed content respects user privacy and does not log raw data.
-    }
-}
-
-struct ConnectionStatusBadge: View {
-    var provider: MLXProvider
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(statusColor)
-                .frame(width: 8, height: 8)
-            Text(statusText)
-                .font(.caption)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 4)
-        .background(.ultraThinMaterial)
-        .cornerRadius(6)
-    }
-
-    private var statusColor: Color {
-        if provider.isLoading { return .orange }
-        return provider.isAvailable ? .green : .red
-    }
-
-    private var statusText: String {
-        if provider.isLoading { return "Loading" }
-        return provider.isAvailable ? "Ready" : "Offline"
     }
 }
