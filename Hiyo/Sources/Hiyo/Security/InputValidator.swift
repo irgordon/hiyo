@@ -118,9 +118,11 @@ enum InputValidator {
             SecureFileManager.appSupportDirectory.path,
             FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.path,
             FileManager.default.temporaryDirectory.path
-        ].compactMap { $0 }
+        ].compactMap { $0 as String? }
         
-        guard allowedPrefixes.contains(where: pathString.hasPrefix) else {
+        guard allowedPrefixes.contains(where: { (prefix: String) in
+            pathString == prefix || pathString.hasPrefix(prefix + "/")
+        }) else {
             throw ValidationError.invalidPath
         }
         

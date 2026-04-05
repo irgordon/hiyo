@@ -26,7 +26,7 @@ jobs:
         run: sudo xcode-select -s /Applications/Xcode.app
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
+        uses: github/codeql-action/init@v3
         with:
           languages: swift
           # Optional: enable additional CodeQL packs
@@ -38,8 +38,7 @@ jobs:
       - name: Build Swift project (SPM)
         run: |
           swift package resolve
-          # Suppress compiler warnings from dependencies to avoid failing the analysis
-          swift build --configuration release -Xswiftc -suppress-warnings
+          swift build --configuration release
 
       # ---------------------------------------------------------
       # OPTIONAL: Build Xcode app target if needed
@@ -53,4 +52,4 @@ jobs:
       #       build
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4
+        uses: github/codeql-action/analyze@v3
