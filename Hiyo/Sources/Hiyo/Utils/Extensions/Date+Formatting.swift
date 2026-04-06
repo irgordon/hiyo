@@ -16,6 +16,7 @@ extension Date {
     /// Formats for conversation list display
     var conversationListFormatted: String {
         let calendar = Calendar.current
+        let now = Date()
         
         if calendar.isDateInToday(self) {
             // Today: show time only
@@ -116,6 +117,7 @@ extension Date {
     /// Groups conversations by time period
     var conversationGroup: ConversationGroup {
         let calendar = Calendar.current
+        let now = Date()
         
         if calendar.isDateInToday(self) {
             return .today
