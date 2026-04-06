@@ -105,7 +105,7 @@ final class MLXProvider {
                 self.modelContainer = container
                 self.state = .loaded(modelId: sanitizedId)
                 self.isAvailable = true
-                SecurityLogger.log(.modelLoaded, details: sanitizedId)
+                SecurityLogger.log(SecurityLogger.SecurityEvent.modelLoaded, details: sanitizedId)
             } catch is CancellationError {
                 // If cancelled, likely superseded by another load or user action.
                 // We do not change state here as it might race with the new task.
@@ -121,9 +121,9 @@ final class MLXProvider {
     func unloadModel() {
         modelContainer = nil
         state = .idle
-        MLX.GPU.clearCache()
+        MLX.Memory.clearCache()
         memoryUsage = 0.0
-        SecurityLogger.log(.modelUnloaded, details: "Memory cleared")
+        SecurityLogger.log(SecurityLogger.SecurityEvent.modelUnloaded, details: "Memory cleared")
     }
     
     func refreshAvailableModels() {
@@ -153,32 +153,35 @@ final class MLXProvider {
         return AsyncStream { continuation in
             Task {
                 do {
-                    let stream = try await container.perform { [weak self] _, model, tokenizer in
+                    let stream = try await container.perform { model, tokenizer in
                         
                         let prompt = LLMGenerator.formatPrompt(messages: messages, tokenizer: tokenizer)
                         let inputIds = tokenizer.encode(text: prompt)
                         
-                        try await ResourceGuard.shared.allocateTokens(inputIds.count)
+                        return (prompt, inputIds, model, tokenizer)
+                    }
+
+                    let (prompt, inputIds, model, tokenizer) = stream
+
+                    try await ResourceGuard.shared.allocateTokens(inputIds.count)
+
+                    let generator = LLMGenerator(model: model, tokenizer: tokenizer, parameters: parameters)
+
+                    for await response in generator.generate(prompt: inputIds) {
+                        guard !Task.isCancelled else { break }
                         
-                        let generator = LLMGenerator(model: model, tokenizer: tokenizer, parameters: parameters)
+                        tokenCount += 1
+                        continuation.yield(response.text)
                         
-                        for await response in generator.generate(prompt: inputIds) {
-                            guard !Task.isCancelled else { break }
-                            
-                            tokenCount += 1
-                            continuation.yield(response.text)
-                            
-                            await self?.updateMemoryStats()
-                        }
-                        
-                        await ResourceGuard.shared.releaseTokens(tokenCount)
-                        
-                        let latency = Date().timeIntervalSince(startTime) * 1000
-                        SecurityLogger.logPublic(.generationCompleted,
-                                                details: "Generated \(tokenCount) tokens in \(Int(latency))ms")
+                        await self.updateMemoryStats()
                     }
                     
-                    _ = try await stream
+                    await ResourceGuard.shared.releaseTokens(tokenCount)
+
+                    let latency = Date().timeIntervalSince(startTime) * 1000
+                    SecurityLogger.log(SecurityLogger.SecurityEvent.generationCompleted,
+                                            details: "Generated \(tokenCount) tokens in \(Int(latency))ms")
+
                     continuation.finish()
                     
                 } catch is CancellationError {
@@ -193,7 +196,7 @@ final class MLXProvider {
     // MARK: - Private
     
     private func updateMemoryStats() async {
-        let active = Double(MLX.GPU.activeMemory) / 1_073_741_824.0
+        let active = Double(MLX.Memory.activeMemory) / 1_073_741_824.0
         await MainActor.run {
             self.memoryUsage = active
         }
@@ -237,7 +240,7 @@ struct LLMGenerator: @unchecked Sendable {
                         : prompt
                     
                     if prompt.count > maxContext {
-                        SecurityLogger.logPublic(.promptTruncated,
+                        SecurityLogger.log(.suspiciousEnvironment,
                                                  details: "Prompt truncated to \(maxContext) tokens")
                     }
 
@@ -306,18 +309,22 @@ struct LLMGenerator: @unchecked Sendable {
         }
         
         if topP < 1.0 {
-            let probs = softMax(processed, axis: -1)
-            let sortedIndices = argSort(probs, axis: -1, descending: true)
-            let sortedProbs = probs[sortedIndices]
+            let probs = softmax(processed, axis: -1)
+            let sortedIndices = argSort(probs, axis: -1)
+            // Reverse to get descending order
+            let reversedIndices = sortedIndices[0..., .stride(-1)]
+
+            let sortedProbs = probs[reversedIndices]
             let cumsumProbs = cumsum(sortedProbs, axis: -1)
 
-            let maskToRemove = (cumsumProbs - sortedProbs) > topP
+            let topPArray = MLXArray(topP)
+            let maskToRemove = (cumsumProbs - sortedProbs) .> topPArray
 
-            if maskToRemove.all().item(Bool.self) == true {
+            if maskToRemove.all().item() as Bool {
                 return categorical(processed)
             }
 
-            processed = processed.at(sortedIndices[maskToRemove]).set(-Float.infinity)
+            processed[reversedIndices[maskToRemove]] = -Float.infinity
         }
         
         return categorical(processed)

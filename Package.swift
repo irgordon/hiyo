@@ -12,7 +12,7 @@ let package = Package(
     ],
     dependencies: [
         // Pin exact versions for reproducible, secure builds.
-        .package(url: "https://github.com/ml-explore/mlx-swift.git", exact: "0.18.0"),
+        .package(url: "https://github.com/ml-explore/mlx-swift.git", branch: "main"),
         .package(url: "https://github.com/huggingface/swift-transformers.git", exact: "0.1.0")
     ],
     targets: [
@@ -24,7 +24,9 @@ let package = Package(
                 .product(name: "MLXRandom", package: "mlx-swift"),
                 .product(name: "MLXNN", package: "mlx-swift"),
                 .product(name: "MLXOptimizers", package: "mlx-swift"),
-                .product(name: "Transformers", package: "swift-transformers")
+                .product(name: "MLXFast", package: "mlx-swift"),
+                .product(name: "Transformers", package: "swift-transformers"),
+                .product(name: "Hub", package: "swift-transformers")
             ],
             path: "Hiyo/Sources/Hiyo",
             exclude: [

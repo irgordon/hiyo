@@ -107,38 +107,38 @@ enum SecureMLX {
         }
 
         // Clear MLX GPU cache
-        MLX.GPU.clearCache()
+        MLX.Memory.clearCache()
 
         SecurityLogger.log(.dataCleared, details: "All MLX caches cleared")
     }
 
     /// Sets safe MLX GPU limits (adaptive where possible)
     static func configureSafeLimits() {
-        // Prefer adaptive limits based on total GPU memory if available.
-        let totalMemory = MLX.GPU.totalMemory() ?? (8 * 1024 * 1024 * 1024) // Assume 8 GB if unknown
+        // Prefer adaptive limits based on total physical memory as MLX bindings do not expose GPU memory.
+        let totalMemory = ProcessInfo.processInfo.physicalMemory
 
-        let cacheLimit = totalMemory / 8      // ~12.5% for cache
-        let memoryLimit = totalMemory / 2     // ~50% overall limit
+        let cacheLimit = Int(totalMemory) / 8      // ~12.5% for cache
+        let memoryLimit = Int(totalMemory) / 2     // ~50% overall limit
 
-        MLX.GPU.set(cacheLimit: cacheLimit)
-        MLX.GPU.set(memoryLimit: memoryLimit)
+        MLX.Memory.cacheLimit = cacheLimit
+        MLX.Memory.memoryLimit = memoryLimit
     }
 
     /// Checks if MLX is running in safe mode
     @discardableResult
     static func verifyMLXConfiguration() -> Bool {
-        let cacheLimit = MLX.GPU.cacheLimit
-        let memoryLimit = MLX.GPU.memoryLimit
-        let totalMemory = MLX.GPU.totalMemory() ?? (16 * 1024 * 1024 * 1024) // Assume 16 GB if unknown
+        let cacheLimit = MLX.Memory.cacheLimit
+        let memoryLimit = MLX.Memory.memoryLimit
+        let totalMemory = ProcessInfo.processInfo.physicalMemory
 
-        let cacheOK = cacheLimit > 0 && cacheLimit <= totalMemory
-        let memoryOK = memoryLimit > 0 && memoryLimit <= totalMemory
+        let cacheOK = cacheLimit > 0 && cacheLimit <= Int(totalMemory)
+        let memoryOK = memoryLimit > 0 && memoryLimit <= Int(totalMemory)
 
         let isSafe = cacheOK && memoryOK
 
         if !isSafe {
             SecurityLogger.log(
-                .configurationError,
+                .suspiciousEnvironment,
                 details: "MLX GPU limits out of expected range (cache: \(cacheLimit), memory: \(memoryLimit))"
             )
         }

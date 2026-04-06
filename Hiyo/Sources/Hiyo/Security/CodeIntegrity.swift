@@ -13,7 +13,7 @@ enum CodeIntegrity {
     static func verifyIntegrity() -> Bool {
         var code: SecCode?
         let status = SecCodeCopySelf(
-            SecCSFlags(rawValue: kSecCSDefaultFlags),
+            SecCSFlags(rawValue: 0),
             &code
         )
         
@@ -80,34 +80,10 @@ enum CodeIntegrity {
             
             // Delayed termination to allow log to sync
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                NSApp.terminate(nil)
+                exit(1)
             }
         }
         #endif
-    }
-}
-
-// MARK: - Security Logger
-
-enum SecurityLogger {
-    private static let logger = Logger(subsystem: "ai.hiyo.mac", category: "security")
-    
-    static func log(_ event: SecurityEvent, details: String) {
-        logger.error("[SECURITY] \(event.rawValue): \(details)")
-        
-        // In production, you might want to send to a secure logging service
-        // or write to an encrypted local log file
-    }
-    
-    enum SecurityEvent: String {
-        case integrityCheckFailed = "INTEGRITY_CHECK_FAILED"
-        case integrityViolation = "INTEGRITY_VIOLATION"
-        case sandboxEscapeAttempt = "SANDBOX_ESCAPE_ATTEMPT"
-        case injectionDetected = "CODE_INJECTION_DETECTED"
-        case suspiciousEnvironment = "SUSPICIOUS_ENVIRONMENT"
-        case modelLoaded = "MODEL_LOADED"
-        case modelUnloaded = "MODEL_UNLOADED"
-        case networkError = "NETWORK_ERROR"
     }
 }
 

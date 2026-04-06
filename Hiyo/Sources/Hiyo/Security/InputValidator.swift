@@ -55,7 +55,7 @@ enum InputValidator {
         
         // Control character check
         let controlChars = trimmed.unicodeScalars.filter { 
-            $0.properties.isControl && 
+            CharacterSet.controlCharacters.contains($0) &&
             $0 != " " && 
             $0 != "\n" && 
             $0 != "\t" && 
@@ -114,13 +114,17 @@ enum InputValidator {
         }
         
         // Must be within allowed directories
-        let allowedPrefixes = [
+        let allowedPrefixes: [String] = [
             SecureFileManager.appSupportDirectory.path,
             FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.path,
             FileManager.default.temporaryDirectory.path
         ].compactMap { $0 }
         
-        guard allowedPrefixes.contains(where: pathString.hasPrefix) else {
+        // Exact match or trailing slash to prevent directory traversal
+        // (e.g. allowing "/App/Safe" should not allow "/App/Safe-malicious")
+        guard allowedPrefixes.contains(where: { prefix in
+            pathString == prefix || pathString.hasPrefix(prefix + "/")
+        }) else {
             throw ValidationError.invalidPath
         }
         
