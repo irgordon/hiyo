@@ -24,6 +24,7 @@ let package = Package(
                 .product(name: "MLXRandom", package: "mlx-swift"),
                 .product(name: "MLXNN", package: "mlx-swift"),
                 .product(name: "MLXOptimizers", package: "mlx-swift"),
+                .product(name: "MLXFast", package: "mlx-swift"),
                 .product(name: "Transformers", package: "swift-transformers")
             ],
             path: "Hiyo/Sources/Hiyo",
