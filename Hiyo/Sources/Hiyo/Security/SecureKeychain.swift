@@ -7,6 +7,7 @@
 
 import Foundation
 import Security
+import LocalAuthentication
 
 enum SecureKeychain {
     private static let service = "ai.hiyo.mac.secure"
@@ -62,7 +63,9 @@ enum SecureKeychain {
         ]
         
         if let prompt = prompt {
-            query[kSecUseOperationPrompt as String] = prompt
+            let context = LAContext()
+            context.localizedReason = prompt
+            query[kSecUseAuthenticationContext as String] = context
         }
         
         var result: AnyObject?

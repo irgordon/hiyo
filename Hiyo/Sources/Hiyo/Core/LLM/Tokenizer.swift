@@ -26,8 +26,8 @@ func loadTokenizerConfig(configuration: ModelConfiguration, hub: HubApi) async t
         do {
             // the load can fail (async when we try to use it)
             let loaded = LanguageModelConfigurationFromHub(
-                modelName: configuration.tokenizerId ?? id, hubApi: hub)
-            _ = try await loaded.tokenizerConfig
+                modelName: configuration.tokenizerId ?? id)
+            _ = try loaded.tokenizerConfig
             config = loaded
         } catch {
             let nserror = error as NSError

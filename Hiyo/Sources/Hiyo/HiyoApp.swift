@@ -9,12 +9,6 @@ import SwiftUI
 import AppKit
 import MLX
 
-// MARK: - UserDefaults Keys
-
-enum DefaultsKey {
-    static let selectedModel = "selectedModel"
-}
-
 // MARK: - HiyoApp
 
 @main
@@ -159,7 +153,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         // Clean up MLX and any cached GPU resources
-        MLX.GPU.clearCache()
+        MLX.Memory.clearCache()
     }
 
     private func configureMainWindowAppearance() {

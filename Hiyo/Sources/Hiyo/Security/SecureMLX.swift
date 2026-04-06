@@ -107,7 +107,7 @@ enum SecureMLX {
         }
 
         // Clear MLX GPU cache
-        MLX.GPU.clearCache()
+        MLX.Memory.clearCache()
 
         SecurityLogger.log(.dataCleared, details: "All MLX caches cleared")
     }
@@ -120,15 +120,15 @@ enum SecureMLX {
         let cacheLimit = Int(totalMemory) / 8      // ~12.5% for cache
         let memoryLimit = Int(totalMemory) / 2     // ~50% overall limit
 
-        MLX.GPU.set(cacheLimit: cacheLimit)
-        MLX.GPU.set(memoryLimit: memoryLimit)
+        MLX.Memory.cacheLimit = cacheLimit
+        MLX.Memory.memoryLimit = memoryLimit
     }
 
     /// Checks if MLX is running in safe mode
     @discardableResult
     static func verifyMLXConfiguration() -> Bool {
-        let cacheLimit = MLX.GPU.cacheLimit
-        let memoryLimit = MLX.GPU.memoryLimit
+        let cacheLimit = MLX.Memory.cacheLimit
+        let memoryLimit = MLX.Memory.memoryLimit
         let totalMemory = ProcessInfo.processInfo.physicalMemory
 
         let cacheOK = cacheLimit > 0 && cacheLimit <= Int(totalMemory)
