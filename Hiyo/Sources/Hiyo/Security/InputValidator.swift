@@ -120,7 +120,10 @@ enum InputValidator {
             FileManager.default.temporaryDirectory.path
         ].compactMap { $0 }
         
-        guard allowedPrefixes.contains(where: pathString.hasPrefix) else {
+        let isAllowed = allowedPrefixes.contains { prefix in
+            pathString == prefix || pathString.hasPrefix(prefix + "/")
+        }
+        guard isAllowed else {
             throw ValidationError.invalidPath
         }
         
