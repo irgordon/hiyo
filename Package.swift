@@ -48,20 +48,14 @@ let package = Package(
         .testTarget(
             name: "HiyoTests",
             dependencies: ["Hiyo"],
-            path: "Hiyo/Tests/HiyoTests",
-            resources: [
-                .process("Resources")
-            ]
+            path: "Hiyo/Tests/HiyoTests"
         ),
 
         // MARK: - UI Tests
         .testTarget(
             name: "HiyoUITests",
             dependencies: ["Hiyo"],
-            path: "Hiyo/Tests/HiyoUITests",
-            resources: [
-                .process("Resources")
-            ]
+            path: "Hiyo/Tests/HiyoUITests"
         )
     ]
 )
