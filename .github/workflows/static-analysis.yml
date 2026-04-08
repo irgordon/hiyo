@@ -11,7 +11,7 @@ on:
 jobs:
   static-analysis:
     name: Run SwiftLint & Semgrep and Upload SARIF
-    runs-on: macos-latest
+    runs-on: macos-14
 
     permissions:
       contents: read
