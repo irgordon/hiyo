@@ -96,9 +96,11 @@ struct PerformanceSettings: View {
                 }
             }
             
-            Section("Hardware") {
+            Section {
                 LabeledContent("Device", value: hardwareInfo)
                 LabeledContent("GPU Available", value: MLX.GPU.isAvailable ? "Yes" : "No")
+            } header: {
+                Text("Hardware")
             }
         }
         .formStyle(.grouped)
