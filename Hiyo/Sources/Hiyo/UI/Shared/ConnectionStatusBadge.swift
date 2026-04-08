@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ConnectionStatusBadge: View {
-    @ObservedObject var provider: MLXProvider
+    @Environment(MLXProvider.self) var provider
     
     var body: some View {
         HStack(spacing: 6) {
