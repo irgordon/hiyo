@@ -178,6 +178,16 @@ final class SecurityTests: XCTestCase {
         XCTAssertEqual("".sanitizedFilename, "untitled")
     }
     
+    func testInvalidFilePathPartialTraversal() {
+        let tempDir = FileManager.default.temporaryDirectory.path
+        // Create a fake directory path that shares the prefix
+        let invalidPath = tempDir + "Fake/secret.txt"
+
+        XCTAssertThrowsError(try InputValidator.validateFilePath(invalidPath)) { error in
+            XCTAssertEqual(error as? ValidationError, .invalidPath)
+        }
+    }
+
     func testSecureCacheDirectory() throws {
         let cacheDir = try SecureMLX.secureCacheDirectory()
         
