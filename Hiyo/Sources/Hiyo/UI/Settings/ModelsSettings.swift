@@ -155,7 +155,7 @@ struct AddCustomModelSheet: View {
         
         Task {
             do {
-                try InputValidator.validateModelIdentifier(modelId)
+                _ = try InputValidator.validateModelIdentifier(modelId)
                 // Start download...
                 dismiss()
             } catch {
