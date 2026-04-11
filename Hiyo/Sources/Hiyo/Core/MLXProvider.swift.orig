@@ -37,7 +37,7 @@ final class MLXProvider {
     var state: ModelLoadState = .idle
     var isAvailable: Bool = false
     var memoryUsage: Double = 0.0
-    
+
     // Backward compatibility computed properties
     var isLoading: Bool {
         if case .loading = state { return true }
@@ -60,22 +60,22 @@ final class MLXProvider {
     var availableModels: [MLXModel] {
         modelRegistry.defaultModels
     }
-    
+
     private var modelContainer: ModelContainer?
     private let modelRegistry = MLXModelRegistry()
     private var loadTask: Task<Void, Error>?
     private let loader = LoadModelOperation()
-    
+
     init() {
         SecureMLX.configureSafeLimits()
         isAvailable = true
     }
-    
+
     // MARK: - Model Management
-    
+
     func loadModel(_ modelId: String) async throws {
         loadTask?.cancel()
-        
+
         let sanitizedId: String
         do {
             sanitizedId = try InputValidator.validateModelIdentifier(modelId)
@@ -86,12 +86,12 @@ final class MLXProvider {
 
         // Initial state update
         state = .loading(modelId: sanitizedId, progress: 0.0)
-        
+
         try Task.checkCancellation()
-        
+
         // Delegate all loading and directory resolution to LLMModelFactory
         let config = ModelConfiguration(id: sanitizedId)
-        
+
         loadTask = Task {
             do {
                 let container = try await self.loader.load(
@@ -114,10 +114,10 @@ final class MLXProvider {
                 throw error
             }
         }
-        
+
         try await loadTask?.value
     }
-    
+
     func unloadModel() {
         modelContainer = nil
         state = .idle
@@ -125,7 +125,7 @@ final class MLXProvider {
         memoryUsage = 0.0
         SecurityLogger.log(.modelUnloaded, details: "Memory cleared")
     }
-    
+
     func refreshAvailableModels() {
         // With Observation, changes to observed properties (like if availableModels were mutable)
         // would automatically trigger updates. Since availableModels is computed from modelRegistry,
@@ -134,9 +134,9 @@ final class MLXProvider {
         // If the intention is to force a UI refresh because underlying data changed, we might need a dummy property.
         // For now, removing objectWillChange.send() as requested.
     }
-    
+
     // MARK: - Generation
-    
+
     func generate(
         messages: [LLMMessage],
         parameters: GenerationParameters = .default
@@ -144,43 +144,43 @@ final class MLXProvider {
         guard let container = modelContainer else {
             throw MLXError.modelNotLoaded
         }
-        
+
         try await ResourceGuard.shared.checkResourceLimits()
-        
+
         let startTime = Date()
         var tokenCount = 0
-        
+
         return AsyncStream { continuation in
             Task {
                 do {
                     let stream = try await container.perform { [weak self] _, model, tokenizer in
-                        
+
                         let prompt = LLMGenerator.formatPrompt(messages: messages, tokenizer: tokenizer)
                         let inputIds = tokenizer.encode(text: prompt)
-                        
+
                         try await ResourceGuard.shared.allocateTokens(inputIds.count)
-                        
+
                         let generator = LLMGenerator(model: model, tokenizer: tokenizer, parameters: parameters)
-                        
+
                         for await response in generator.generate(prompt: inputIds) {
                             guard !Task.isCancelled else { break }
-                            
+
                             tokenCount += 1
                             continuation.yield(response.text)
-                            
+
                             await self?.updateMemoryStats()
                         }
-                        
+
                         await ResourceGuard.shared.releaseTokens(tokenCount)
-                        
+
                         let latency = Date().timeIntervalSince(startTime) * 1000
                         SecurityLogger.logPublic(.generationCompleted,
                                                 details: "Generated \(tokenCount) tokens in \(Int(latency))ms")
                     }
-                    
+
                     _ = try await stream
                     continuation.finish()
-                    
+
                 } catch is CancellationError {
                     continuation.finish()
                 } catch {
@@ -189,9 +189,9 @@ final class MLXProvider {
             }
         }
     }
-    
+
     // MARK: - Private
-    
+
     private func updateMemoryStats() async {
         let active = Double(MLX.GPU.activeMemory) / 1_073_741_824.0
         await MainActor.run {
@@ -222,7 +222,7 @@ struct LLMGenerator: @unchecked Sendable {
             default: return message.content
             }
         }
-        
+
         let joined = lines.joined(separator: "\n")
         return joined.isEmpty ? "Assistant:" : joined + "\nAssistant:"
     }
@@ -235,7 +235,7 @@ struct LLMGenerator: @unchecked Sendable {
                     let truncatedPrompt = prompt.count > maxContext
                         ? Array(prompt.suffix(maxContext))
                         : prompt
-                    
+
                     if prompt.count > maxContext {
                         SecurityLogger.logPublic(.promptTruncated,
                                                  details: "Prompt truncated to \(maxContext) tokens")
@@ -252,29 +252,29 @@ struct LLMGenerator: @unchecked Sendable {
                     }
 
                     let maxTokens = min(parameters.maxTokens, model.maxContextLength)
-                    
+
                     for _ in 0..<maxTokens {
                         guard !Task.isCancelled else { break }
-                        
+
                         let inputMLX = MLXArray(inputIds).reshaped([1, 1])
                         let logits = try model.forwardIncremental(input: inputMLX, cache: cache)
                         let nextLogits = logits[0..., -1, 0...]
-                        
+
                         let nextToken = try sampleToken(from: nextLogits)
-                        
+
                         if let text = tokenizer.decode(tokens: [nextToken]) {
                             continuation.yield(.init(text: text, token: nextToken))
                         }
-                        
+
                         inputIds = [nextToken]
-                        
+
                         if nextToken == tokenizer.eosTokenId {
                             break
                         }
                     }
-                    
+
                     continuation.finish()
-                    
+
                 } catch is CancellationError {
                     continuation.finish()
                 } catch {
@@ -283,35 +283,35 @@ struct LLMGenerator: @unchecked Sendable {
             }
         }
     }
-    
+
     private func sampleToken(from logits: MLXArray) throws -> Int {
         let sampled = sample(
             logits: logits,
             temperature: parameters.temperature,
             topP: parameters.topP
         )
-        
+
         guard let token = sampled.item(Int.self) as Int? else {
             throw MLXError.generationFailed("Invalid token sampled")
         }
-        
+
         return token
     }
 
     private func sample(logits: MLXArray, temperature: Float, topP: Float) -> MLXArray {
         var processed = logits
-        
+
         if temperature != 1.0 {
             processed = processed / temperature
         }
-        
+
         if topP < 1.0 {
             let probs = softmax(processed, axis: -1)
             let sortedIndices = argSort(-probs, axis: -1)
             let sortedProbs = probs[sortedIndices]
             let cumsumProbs = cumsum(sortedProbs, axis: -1)
 
-            let maskToRemove = (cumsumProbs - sortedProbs) > topP
+            let maskToRemove = (cumsumProbs - sortedProbs) > MLXArray(topP)
 
             if maskToRemove.all().item(Bool.self) == true {
                 return categorical(processed)
@@ -319,7 +319,7 @@ struct LLMGenerator: @unchecked Sendable {
 
             processed[sortedIndices[maskToRemove]] = MLXArray(-Float.infinity)
         }
-        
+
         return categorical(processed)
     }
 }
@@ -330,7 +330,7 @@ struct GenerationParameters: Sendable {
     var temperature: Float = 0.7
     var topP: Float = 0.9
     var maxTokens: Int = 1024
-    
+
     static let `default` = GenerationParameters()
 }
 
@@ -348,7 +348,7 @@ enum MLXError: Error {
     case modelNotLoaded
     case generationFailed(String)
     case cancelled
-    
+
     var localizedDescription: String {
         switch self {
         case .modelNotLoaded:

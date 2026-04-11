@@ -1,0 +1,84 @@
+--- Hiyo/Sources/Hiyo/Core/MLXProvider.swift
++++ Hiyo/Sources/Hiyo/Core/MLXProvider.swift
+@@ -237,8 +237,8 @@
+
+                     if prompt.count > maxContext {
+-                        SecurityLogger.logPublic(.promptTruncated,
+-                                                 details: "Prompt truncated to \(maxContext) tokens")
++                        SecurityLogger.log(.invalidInput,
++                                                 details: "Prompt truncated to \(maxContext) tokens")
+                     }
+
+                     var inputIds = truncatedPrompt
+@@ -311,7 +311,7 @@
+             let sortedProbs = probs[sortedIndices]
+             let cumsumProbs = cumsum(sortedProbs, axis: -1)
+
+-            let maskToRemove = (cumsumProbs - sortedProbs) > MLXArray(topP)
++            let maskToRemove = (cumsumProbs - sortedProbs) > topP
+
+             if maskToRemove.all().item(Bool.self) == true {
+                 return categorical(processed)
+--- Hiyo/Sources/Hiyo/Security/InputValidator.swift
++++ Hiyo/Sources/Hiyo/Security/InputValidator.swift
+@@ -115,13 +115,13 @@
+
+         // Must be within allowed directories
+         let allowedPrefixes = [
+             SecureFileManager.appSupportDirectory.path,
+-            FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.path,
++            FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.path ?? "",
+             FileManager.default.temporaryDirectory.path
+-        ].compactMap { $0 }
++        ].compactMap { String($0) }
+
+         let isAllowed = allowedPrefixes.contains { prefix in
+-            pathString == prefix || pathString.hasPrefix(prefix + "/")
++            pathString == prefix || pathString.hasPrefix(prefix + "/")
+         }
+
+         guard isAllowed else {
+--- Hiyo/Sources/Hiyo/Security/SecureMLX.swift
++++ Hiyo/Sources/Hiyo/Security/SecureMLX.swift
+@@ -115,7 +115,7 @@
+     /// Sets safe MLX GPU limits (adaptive where possible)
+     static func configureSafeLimits() {
+         // Prefer adaptive limits based on total GPU memory if available.
+-        let totalMemory = MLX.GPU.totalMemory() ?? (8 * 1024 * 1024 * 1024) // Assume 8 GB if unknown
++        let totalMemory = ProcessInfo.processInfo.physicalMemory // Assume 8 GB if unknown
+
+         let cacheLimit = totalMemory / 8      // ~12.5% for cache
+         let memoryLimit = totalMemory / 2     // ~50% overall limit
+@@ -129,7 +129,7 @@
+     static func verifyMLXConfiguration() -> Bool {
+         let cacheLimit = MLX.GPU.cacheLimit
+         let memoryLimit = MLX.GPU.memoryLimit
+-        let totalMemory = MLX.GPU.totalMemory() ?? (16 * 1024 * 1024 * 1024) // Assume 16 GB if unknown
++        let totalMemory = ProcessInfo.processInfo.physicalMemory // Assume 16 GB if unknown
+
+         let cacheOK = cacheLimit > 0 && cacheLimit <= totalMemory
+         let memoryOK = memoryLimit > 0 && memoryLimit <= totalMemory
+@@ -138,7 +138,7 @@
+
+         if !isSafe {
+             SecurityLogger.log(
+-                .configurationError,
++                .suspiciousEnvironment,
+                 details: "MLX GPU limits out of expected range (cache: \(cacheLimit), memory: \(memoryLimit))"
+             )
+         }
+--- Hiyo/Sources/Hiyo/Security/SecureNetworkSession.swift
++++ Hiyo/Sources/Hiyo/Security/SecureNetworkSession.swift
+@@ -19,10 +19,12 @@
+         config.timeoutIntervalForResource = 300
+         config.httpMaximumConnectionsPerHost = 0 // Block by default
+         config.waitsForConnectivity = false
++        #if os(macOS) || os(iOS)
+         config.urlCredentialPersistence = .none
+         config.httpCookieAcceptPolicy = .never
+         config.httpShouldSetCookies = false
++        #endif
+
+         return URLSession(
+             configuration: config,
+             delegate: self,

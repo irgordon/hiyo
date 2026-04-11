@@ -1,0 +1,275 @@
+--- Hiyo/Sources/Hiyo/Core/LLM/Load.swift
++++ Hiyo/Sources/Hiyo/Core/LLM/Load.swift
+@@ -21,12 +21,7 @@
+         return try await hub.snapshot(
+             from: repo, matching: modelFiles, progressHandler: progressHandler)
+     } catch Hub.HubClientError.authorizationRequired {
+-        // an authorizationRequired means (typically) that the named repo doesn't exist on
+-        // on the server so retry with local only configuration
+-        // For struct ModelConfiguration, we don't have a 'local only' fallback method
+-        // unless we assume a default location.
+-        // But overrideDirectory handles explicit local paths.
+-        // We will just rethrow for now or handle if we want to guess path.
+         throw error
+     } catch {
+         let nserror = error as NSError
+@@ -107,6 +102,5 @@
+     let modelDirectory = try await prepareModelDirectory(
+         hub: hub, configuration: configuration, progressHandler: progressHandler)
+-    return try await ModelContainer(
+-        hub: hub, modelDirectory: modelDirectory, configuration: configuration)
++    return try await ModelContainer(hub: hub, modelDirectory: modelDirectory, configuration: configuration)
+ }
+--- Hiyo/Sources/Hiyo/Core/LLM/Tokenizer.swift
++++ Hiyo/Sources/Hiyo/Core/LLM/Tokenizer.swift
+@@ -4,7 +4,7 @@
+ import Foundation
+ import Hub
+ import Tokenizers
+
+-public func loadTokenizer(configuration: ModelConfiguration, hub: HubApi) async throws -> Tokenizer
++public func loadTokenizer(configuration: ModelConfiguration, hub: HubApi) async throws -> any Tokenizer
+ {
+     let (tokenizerConfig, tokenizerData) = try await loadTokenizerConfig(
+@@ -20,13 +20,13 @@
+     let config: LanguageModelConfigurationFromHub
+
+     if let directory = configuration.overrideDirectory {
+-        config = LanguageModelConfigurationFromHub(modelFolder: directory, hubApi: hub)
++        config = LanguageModelConfigurationFromHub(modelFolder: directory)
+     } else {
+         let id = configuration.id
+         do {
+             // the load can fail (async when we try to use it)
+             let loaded = LanguageModelConfigurationFromHub(
+-                modelName: configuration.tokenizerId ?? id, hubApi: hub)
++                modelName: configuration.tokenizerId ?? id)
+             _ = try await loaded.tokenizerConfig
+             config = loaded
+         } catch {
+--- Hiyo/Sources/Hiyo/Core/LLMModelFactory.swift
++++ Hiyo/Sources/Hiyo/Core/LLMModelFactory.swift
+@@ -70,7 +70,7 @@
+         let secureCache = try SecureMLX.secureCacheDirectory()
+         let hub = HubApi(downloadBase: secureCache)
+
+-        logger.logPublic(.modelLoaded, details: "Loading model \(modelId)")
++        logger.log(.modelLoaded, details: "Loading model \(modelId)")
+
+         // Use the shared loadModelContainer from Load.swift which handles
+         // downloading (if needed) and loading the model.
+@@ -90,7 +90,7 @@
+         // If MLXConfig.recommendedModels contains more models, we should update this list or use that.
+         // For now, we trust the supportedModels set defined here.
+         guard supportedModels.contains(id) else {
+-            logger.log(.modelLoadFailed, details: "Unsupported model id: \(id)")
++            logger.log(.suspiciousEnvironment, details: "Unsupported model id: \(id)")
+             throw LLMModelFactoryError.unsupportedModel(id)
+         }
+         return id
+--- Hiyo/Sources/Hiyo/Core/MLXProvider.swift
++++ Hiyo/Sources/Hiyo/Core/MLXProvider.swift
+@@ -105,7 +105,7 @@
+
+                 self.modelContainer = container
+                 self.state = .loaded(modelId: sanitizedId)
+                 self.isAvailable = true
+-                SecurityLogger.log(.modelLoaded, details: sanitizedId)
++                SecurityLogger.log(.modelLoaded, details: sanitizedId)
+             } catch is CancellationError {
+                 // If cancelled, likely superseded by another load or user action.
+                 // We do not change state here as it might race with the new task.
+@@ -123,7 +123,7 @@
+         state = .idle
+         MLX.GPU.clearCache()
+         memoryUsage = 0.0
+-        SecurityLogger.log(.modelUnloaded, details: "Memory cleared")
++        SecurityLogger.log(.modelUnloaded, details: "Memory cleared")
+     }
+
+     func refreshAvailableModels() {
+@@ -153,14 +153,14 @@
+         return AsyncStream { continuation in
+             Task {
+                 do {
+-                    let stream = try await container.perform { [weak self] _, model, tokenizer in
++                    let stream = try await container.perform { [weak self] model, tokenizer in
+
+                         let prompt = LLMGenerator.formatPrompt(messages: messages, tokenizer: tokenizer)
+                         let inputIds = tokenizer.encode(text: prompt)
+
+                         try await ResourceGuard.shared.allocateTokens(inputIds.count)
+
+-                        let generator = LLMGenerator(model: model, tokenizer: tokenizer, parameters: parameters)
++                        let generator = LLMGenerator(model: model, tokenizer: tokenizer, parameters: parameters)
+
+                         for await response in generator.generate(prompt: inputIds) {
+@@ -237,8 +237,8 @@
+
+                     if prompt.count > maxContext {
+-                        SecurityLogger.logPublic(.promptTruncated,
+-                                                 details: "Prompt truncated to \(maxContext) tokens")
++                        SecurityLogger.log(.invalidInput,
++                                                 details: "Prompt truncated to \(maxContext) tokens")
+                     }
+
+                     var inputIds = truncatedPrompt
+@@ -311,9 +311,9 @@
+             let sortedProbs = probs[sortedIndices]
+             let cumsumProbs = cumsum(sortedProbs, axis: -1)
+
+-            let maskToRemove = (cumsumProbs - sortedProbs) > MLXArray(topP)
++            let maskToRemove = (cumsumProbs - sortedProbs) > MLXArray(topP)
+
+             if maskToRemove.all().item(Bool.self) == true {
+                 return categorical(processed)
+--- Hiyo/Sources/Hiyo/Core/Models/Chat+SummaryProjection.swift
++++ Hiyo/Sources/Hiyo/Core/Models/Chat+SummaryProjection.swift
+@@ -7,9 +7,9 @@
+
+ extension Chat {
+     /// Lightweight projection for list views.
+-    static var summaryProjection: Projection<Chat, ChatSummary> {
+-        Projection(
++    /*static var summaryProjection: Projection<Chat, ChatSummary> {
++        Projection(
+             ChatSummary.self,
+             [
+                 \.id,
+@@ -21,5 +21,5 @@
+                 \.systemPrompt
+             ]
+         )
+-    }
++    }*/
+ }
+--- Hiyo/Sources/Hiyo/Core/Navigation/NavigationCoordinator.swift
++++ Hiyo/Sources/Hiyo/Core/Navigation/NavigationCoordinator.swift
+@@ -31,7 +31,7 @@
+
+     /// Selects a chat from a ChatSummary projection.
+     func selectChat(_ summary: ChatSummary) {
+-        if let fullChat = store.modelContext.model(for: summary.id, as: Chat.self) {
++        if let fullChat = store.modelContext.model(for: summary.id) as? Chat {
+             selectedChat = fullChat
+         }
+     }
+--- Hiyo/Sources/Hiyo/HiyoApp.swift
++++ Hiyo/Sources/Hiyo/HiyoApp.swift
+@@ -10,12 +10,6 @@
+ import Security
+ import AppKit
+
+-// MARK: - UserDefaults Keys
+-
+-enum DefaultsKey {
+-    static let selectedModel = "selectedModel"
+-}
+-
+ // MARK: - App Delegate
+
+ class AppDelegate: NSObject, NSApplicationDelegate {
+--- Hiyo/Sources/Hiyo/Security/CodeIntegrity.swift
++++ Hiyo/Sources/Hiyo/Security/CodeIntegrity.swift
+@@ -18,7 +18,7 @@
+         #if os(macOS)
+         var code: SecCode?
+         let status = SecCodeCopySelf(
+-            SecCSFlags(rawValue: kSecCSDefaultFlags),
++            SecCSFlags(rawValue: 0),
+             &code
+         )
+
+@@ -99,28 +99,3 @@
+     }
+ }
+
+-// MARK: - Security Logger
+-
+-enum SecurityLogger {
+-    private static let logger = Logger(subsystem: "ai.hiyo.mac", category: "security")
+-
+-    static func log(_ event: SecurityEvent, details: String) {
+-        logger.error("[SECURITY] \(event.rawValue): \(details)")
+-
+-        // In production, you might want to send to a secure logging service
+-        // or write to an encrypted local log file
+-    }
+-
+-    enum SecurityEvent: String {
+-        case integrityCheckFailed = "INTEGRITY_CHECK_FAILED"
+-        case integrityViolation = "INTEGRITY_VIOLATION"
+-        case sandboxEscapeAttempt = "SANDBOX_ESCAPE_ATTEMPT"
+-        case injectionDetected = "CODE_INJECTION_DETECTED"
+-        case suspiciousEnvironment = "SUSPICIOUS_ENVIRONMENT"
+-        case modelLoaded = "MODEL_LOADED"
+-        case modelUnloaded = "MODEL_UNLOADED"
+-        case networkError = "NETWORK_ERROR"
+-    }
+-}
+-
+-import OSLog
+-import Darwin.sys.sysctl
+--- Hiyo/Sources/Hiyo/Security/InputValidator.swift
++++ Hiyo/Sources/Hiyo/Security/InputValidator.swift
+@@ -115,13 +115,13 @@
+
+         // Must be within allowed directories
+         let allowedPrefixes = [
+             SecureFileManager.appSupportDirectory.path,
+-            FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.path,
++            FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.path ?? "",
+             FileManager.default.temporaryDirectory.path
+-        ].compactMap { $0 }
++        ].compactMap { String($0) }
+
+         let isAllowed = allowedPrefixes.contains { prefix in
+-            pathString == prefix || pathString.hasPrefix(prefix + "/")
++            pathString == prefix || pathString.hasPrefix(prefix + "/")
+         }
+
+         guard isAllowed else {
+--- Hiyo/Sources/Hiyo/Security/SecureMLX.swift
++++ Hiyo/Sources/Hiyo/Security/SecureMLX.swift
+@@ -115,7 +115,7 @@
+     /// Sets safe MLX GPU limits (adaptive where possible)
+     static func configureSafeLimits() {
+         // Prefer adaptive limits based on total GPU memory if available.
+-        let totalMemory = MLX.GPU.totalMemory() ?? (8 * 1024 * 1024 * 1024) // Assume 8 GB if unknown
++        let totalMemory = ProcessInfo.processInfo.physicalMemory // Assume 8 GB if unknown
+
+         let cacheLimit = totalMemory / 8      // ~12.5% for cache
+         let memoryLimit = totalMemory / 2     // ~50% overall limit
+@@ -129,7 +129,7 @@
+     static func verifyMLXConfiguration() -> Bool {
+         let cacheLimit = MLX.GPU.cacheLimit
+         let memoryLimit = MLX.GPU.memoryLimit
+-        let totalMemory = MLX.GPU.totalMemory() ?? (16 * 1024 * 1024 * 1024) // Assume 16 GB if unknown
++        let totalMemory = ProcessInfo.processInfo.physicalMemory // Assume 16 GB if unknown
+
+         let cacheOK = cacheLimit > 0 && cacheLimit <= totalMemory
+         let memoryOK = memoryLimit > 0 && memoryLimit <= totalMemory
+@@ -138,7 +138,7 @@
+
+         if !isSafe {
+             SecurityLogger.log(
+-                .configurationError,
++                .suspiciousEnvironment,
+                 details: "MLX GPU limits out of expected range (cache: \(cacheLimit), memory: \(memoryLimit))"
+             )
+         }
+--- Hiyo/Sources/Hiyo/Security/SecureNetworkSession.swift
++++ Hiyo/Sources/Hiyo/Security/SecureNetworkSession.swift
+@@ -19,10 +19,12 @@
+         config.timeoutIntervalForResource = 300
+         config.httpMaximumConnectionsPerHost = 0 // Block by default
+         config.waitsForConnectivity = false
++        #if os(macOS) || os(iOS)
+         config.urlCredentialPersistence = .none
+         config.httpCookieAcceptPolicy = .never
+         config.httpShouldSetCookies = false
++        #endif
+
+         return URLSession(
+             configuration: config,
+             delegate: self,
