@@ -8,9 +8,14 @@
 import Foundation
 import Security
 
+#if os(macOS)
+import AppKit
+#endif
+
 enum CodeIntegrity {
     /// Validates app signature at runtime
     static func verifyIntegrity() -> Bool {
+        #if os(macOS)
         var code: SecCode?
         let status = SecCodeCopySelf(
             SecCSFlags(rawValue: kSecCSDefaultFlags),
@@ -35,6 +40,9 @@ enum CodeIntegrity {
         }
         
         return true
+        #else
+        return true
+        #endif
     }
     
     /// Detects debugger attachment
@@ -80,7 +88,11 @@ enum CodeIntegrity {
             
             // Delayed termination to allow log to sync
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            #if os(macOS)
                 NSApp.terminate(nil)
+            #else
+            exit(1)
+            #endif
             }
         }
         #endif

@@ -55,7 +55,7 @@ enum InputValidator {
         
         // Control character check
         let controlChars = trimmed.unicodeScalars.filter { 
-            $0.properties.isControl && 
+            CharacterSet.controlCharacters.contains($0) &&
             $0 != " " && 
             $0 != "\n" && 
             $0 != "\t" && 
@@ -120,7 +120,11 @@ enum InputValidator {
             FileManager.default.temporaryDirectory.path
         ].compactMap { $0 }
         
-        guard allowedPrefixes.contains(where: pathString.hasPrefix) else {
+        let isAllowed = allowedPrefixes.contains { prefix in
+            pathString == prefix || pathString.hasPrefix(prefix + "/")
+        }
+
+        guard isAllowed else {
             throw ValidationError.invalidPath
         }
         

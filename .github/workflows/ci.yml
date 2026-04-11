@@ -78,11 +78,11 @@ jobs:
       # Upload SARIF to GitHub Code Scanning
       # ---------------------------------------------------------
       - name: Upload SwiftLint SARIF
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: sarif/swiftlint.sarif
 
       - name: Upload Semgrep SARIF
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: sarif/semgrep.sarif
