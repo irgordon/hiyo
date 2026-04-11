@@ -70,7 +70,7 @@ public final class LLMModelFactory: Sendable {
         let secureCache = try SecureMLX.secureCacheDirectory()
         let hub = HubApi(downloadBase: secureCache)
 
-        logger.logPublic(.modelLoaded, details: "Loading model \(modelId)")
+        logger.log(.modelLoaded, details: "Loading model \(modelId)")
 
         // Use the shared loadModelContainer from Load.swift which handles
         // downloading (if needed) and loading the model.
@@ -90,7 +90,7 @@ public final class LLMModelFactory: Sendable {
         // If MLXConfig.recommendedModels contains more models, we should update this list or use that.
         // For now, we trust the supportedModels set defined here.
         guard supportedModels.contains(id) else {
-            logger.log(.modelLoadFailed, details: "Unsupported model id: \(id)")
+            logger.log(.suspiciousEnvironment, details: "Unsupported model id: \(id)")
             throw LLMModelFactoryError.unsupportedModel(id)
         }
         return id
