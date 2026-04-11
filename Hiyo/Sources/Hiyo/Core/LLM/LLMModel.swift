@@ -56,6 +56,12 @@ public actor ModelContainer {
     public func perform<R>(_ action: @Sendable (LLMModel, Tokenizer) throws -> R) rethrows -> R {
         try action(model, tokenizer)
     }
+
+    /// Perform an asynchronous action on the model and/or tokenizer.  Callers _must_ eval any `MLXArray` before returning as
+    /// `MLXArray` is not `Sendable`.
+    public func perform<R>(_ action: @Sendable (LLMModel, Tokenizer) async throws -> R) async rethrows -> R {
+        try await action(model, tokenizer)
+    }
 }
 
 extension Module {

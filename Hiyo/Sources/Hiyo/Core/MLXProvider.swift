@@ -306,18 +306,18 @@ struct LLMGenerator: @unchecked Sendable {
         }
         
         if topP < 1.0 {
-            let probs = softMax(processed, axis: -1)
-            let sortedIndices = argSort(probs, axis: -1, descending: true)
+            let probs = softmax(processed, axis: -1)
+            let sortedIndices = argSort(-probs, axis: -1)
             let sortedProbs = probs[sortedIndices]
             let cumsumProbs = cumsum(sortedProbs, axis: -1)
 
-            let maskToRemove = (cumsumProbs - sortedProbs) > topP
+            let maskToRemove = (cumsumProbs - sortedProbs) > MLXArray(topP)
 
             if maskToRemove.all().item(Bool.self) == true {
                 return categorical(processed)
             }
 
-            processed = processed.at(sortedIndices[maskToRemove]).set(-Float.infinity)
+            processed[sortedIndices[maskToRemove]] = MLXArray(-Float.infinity)
         }
         
         return categorical(processed)

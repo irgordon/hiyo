@@ -55,7 +55,7 @@ enum InputValidator {
         
         // Control character check
         let controlChars = trimmed.unicodeScalars.filter { 
-            $0.properties.isControl && 
+            CharacterSet.controlCharacters.contains($0) &&
             $0 != " " && 
             $0 != "\n" && 
             $0 != "\t" && 
