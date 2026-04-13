@@ -2,108 +2,116 @@
 //  PerformanceSettings.swift
 //  Hiyo
 //
-//  MLX generation performance tuning.
+//  GPU memory, caching, and generation parameters.
 //
 
 import SwiftUI
 import MLX
 
 struct PerformanceSettings: View {
-    @Bindable var state = HiyoState.shared
+    @AppStorage(StorageKeys.gpuCacheLimit) private var gpuCacheLimit: Double = 1024
+    @AppStorage(StorageKeys.temperature) private var temperature = 0.7
+    @AppStorage(StorageKeys.maxTokens) private var maxTokens = 1024
+    @AppStorage(StorageKeys.contextLength) private var contextLength = 4096
+
+    @State private var showingCacheCleared = false
     
     var body: some View {
         Form {
+            Section("GPU Memory") {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Cache Limit")
+                        Spacer()
+                        Text("\(Int(gpuCacheLimit)) MB")
+                            .monospacedDigit()
+                    }
+
+                    Slider(value: $gpuCacheLimit, in: 512...4096, step: 256)
+
+                    Text("Higher values improve performance but use more RAM. Changes take effect after reloading the model.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                
+                Button("Clear GPU Cache Now") {
+                    MLX.GPU.clearCache()
+                    showingCacheCleared = true
+                }
+                .alert("Cache Cleared", isPresented: $showingCacheCleared) {
+                    Button("OK") { }
+                } message: {
+                    Text("GPU memory cache has been cleared.")
+                }
+
+                LabeledContent("Active Memory", value: "\(MLX.GPU.activeMemory / 1024 / 1024) MB")
+                LabeledContent("Peak Memory", value: "\(MLX.GPU.peakMemory / 1024 / 1024) MB")
+            }
+
             Section("Generation Parameters") {
-                VStack(alignment: .leading) {
+                VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Text("Temperature")
                         Spacer()
-                        Text(String(format: "%.2f", state.temperature))
-                            .foregroundStyle(.secondary)
+                        Text(String(format: "%.1f", temperature))
                     }
-                    Slider(value: $state.temperature, in: 0.0...2.0, step: 0.05)
-                    Text("Higher values make output more random, lower values make it more focused and deterministic.")
+
+                    Slider(value: $temperature, in: 0...2, step: 0.1)
+
+                    Text("Lower values produce more focused output, higher values more creative.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                .padding(.vertical, 4)
                 
-                VStack(alignment: .leading) {
-                    HStack {
-                        Text("Top P")
-                        Spacer()
-                        Text(String(format: "%.2f", state.topP))
-                            .foregroundStyle(.secondary)
-                    }
-                    Slider(value: $state.topP, in: 0.0...1.0, step: 0.05)
-                    Text("Controls diversity via nucleus sampling. 1.0 means consider all tokens.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.vertical, 4)
-                
-                VStack(alignment: .leading) {
+                VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Text("Max Tokens")
                         Spacer()
-                        Text("\(state.maxTokens)")
-                            .foregroundStyle(.secondary)
+                        Text("\(maxTokens)")
+                            .monospacedDigit()
                     }
-                    Slider(value: Binding(
-                        get: { Double(state.maxTokens) },
-                        set: { state.maxTokens = Int($0) }
-                    ), in: 256...8192, step: 256)
-                    Text("Maximum number of tokens to generate per response.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.vertical, 4)
-            }
 
-            Section {
-                Button("Reset to Defaults") {
-                    state.temperature = 0.7
-                    state.topP = 0.9
-                    state.maxTokens = 1024
+                    Slider(value: .init(
+                        get: { Double(maxTokens) },
+                        set: { maxTokens = Int($0) }
+                    ), in: 256...4096, step: 256)
                 }
-                .buttonStyle(.bordered)
-            }
 
-            Section {
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Text("System Memory")
+                        Text("Context Length")
                         Spacer()
-                        Text("\(Int(state.memoryUsage)) GB")
+                        Text("\(contextLength)")
                             .monospacedDigit()
                     }
                     
-                    ProgressView(value: min(state.memoryUsage / 32.0, 1.0))
-                        .progressViewStyle(.linear)
-                        .tint(state.memoryUsage > 24.0 ? .red : .blue)
+                    Slider(value: .init(
+                        get: { Double(contextLength) },
+                        set: { contextLength = Int($0) }
+                    ), in: 2048...16384, step: 1024)
                     
-                    Text("Estimated MLX footprint. This device shares RAM between CPU and GPU.")
+                    Text("Maximum tokens to keep in conversation history.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-            } header: {
-                Text("Resource Usage")
             }
             
-            Section {
+            Section("Hardware") {
                 LabeledContent("Device", value: hardwareInfo)
-                LabeledContent("MLX Version", value: "Unknown")
+                LabeledContent("MLX Version", value: MLX.version)
                 LabeledContent("GPU Available", value: MLX.GPU.isAvailable ? "Yes" : "No")
-            } header: {
-                Text("Hardware")
             }
         }
         .formStyle(.grouped)
+        .navigationTitle("Performance")
     }
     
     private var hardwareInfo: String {
-        let size = ProcessInfo.processInfo.physicalMemory
-        let gb = size / (1024 * 1024 * 1024)
-        return "Apple Silicon (\(gb)GB RAM)"
+        let processInfo = ProcessInfo.processInfo
+        #if arch(arm64)
+        return "Apple Silicon (\(processInfo.processorCount) cores)"
+        #else
+        return "Intel (\(processInfo.processorCount) cores)"
+        #endif
     }
 }

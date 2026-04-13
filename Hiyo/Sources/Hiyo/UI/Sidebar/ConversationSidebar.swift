@@ -76,7 +76,7 @@ struct ConversationSidebar: View {
             
             statusBar
         }
-        .background(Color.clear)
+        .background(.sidebarBackground)
         .task(id: searchText) {
             do {
                 try await Task.sleep(for: .milliseconds(250))
@@ -142,7 +142,7 @@ private extension ConversationSidebar {
                         .fontWeight(.medium)
                     
                     if let model = nav.selectedChat?.modelIdentifier {
-                        Text(model.modelDisplayName)
+                        Text(model.displayName)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
@@ -175,7 +175,7 @@ private extension ConversationSidebar {
     }
 
     func deleteSummary(_ summary: ChatSummary) {
-        if let chat = store.modelContext.model(for: summary.id) as? Chat {
+        if let chat = store.modelContext.model(for: summary.id, as: Chat.self) {
             store.deleteChat(chat)
             if nav.selectedChat?.id == chat.id {
                 nav.deselectChat()
@@ -184,13 +184,13 @@ private extension ConversationSidebar {
     }
 
     func duplicateChat(_ summary: ChatSummary) {
-        if let chat = store.modelContext.model(for: summary.id) as? Chat {
+        if let chat = store.modelContext.model(for: summary.id, as: Chat.self) {
             store.duplicateChat(chat)
         }
     }
     
     func renameChat(_ summary: ChatSummary) {
-        guard let chat = store.modelContext.model(for: summary.id) as? Chat else { return }
+        guard let chat = store.modelContext.model(for: summary.id, as: Chat.self) else { return }
 
         // Replace with SwiftUI-native rename UI later
         let alert = NSAlert()
@@ -212,7 +212,7 @@ private extension ConversationSidebar {
 }
 
 extension String {
-    var modelDisplayName: String {
+    var displayName: String {
         self.replacingOccurrences(of: "mlx-community/", with: "")
             .replacingOccurrences(of: "-Instruct", with: "")
             .replacingOccurrences(of: "-4bit", with: "")
