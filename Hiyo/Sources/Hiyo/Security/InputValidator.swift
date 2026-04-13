@@ -21,7 +21,7 @@ enum InputValidator {
         }
         
         // Block dangerous characters
-        let blockedChars = ["..", "../", "./", ":", ";", "|", "&", "$", "`", "\\0"]
+        let blockedChars = ["..", "../", "./", ":", ";", "|", "&", "$", "`", "\0"]
         for char in blockedChars {
             guard !model.contains(char) else {
                 throw ValidationError.suspiciousCharacters
