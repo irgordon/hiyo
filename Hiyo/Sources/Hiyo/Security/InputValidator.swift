@@ -116,9 +116,9 @@ enum InputValidator {
         // Must be within allowed directories
         let allowedPrefixes = [
             SecureFileManager.appSupportDirectory.path,
-            FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.path,
+            FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.path as Any,
             FileManager.default.temporaryDirectory.path
-        ].compactMap { $0 }
+        ].compactMap { $0 as? String }
         
         let isAllowed = allowedPrefixes.contains { prefix in
             pathString == prefix || pathString.hasPrefix(prefix + "/")
