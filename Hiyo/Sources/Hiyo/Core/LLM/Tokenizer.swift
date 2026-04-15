@@ -20,13 +20,13 @@ func loadTokenizerConfig(configuration: ModelConfiguration, hub: HubApi) async t
     let config: LanguageModelConfigurationFromHub
 
     if let directory = configuration.overrideDirectory {
-        config = LanguageModelConfigurationFromHub(modelFolder: directory)
+        config = LanguageModelConfigurationFromHub(modelFolder: directory, hubApi: hub)
     } else {
         let id = configuration.id
         do {
             // the load can fail (async when we try to use it)
             let loaded = LanguageModelConfigurationFromHub(
-                modelName: configuration.tokenizerId ?? id)
+                modelName: configuration.tokenizerId ?? id, hubApi: hub)
             _ = try await loaded.tokenizerConfig
             config = loaded
         } catch {

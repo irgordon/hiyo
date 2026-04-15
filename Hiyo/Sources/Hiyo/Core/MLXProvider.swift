@@ -153,7 +153,7 @@ final class MLXProvider {
         return AsyncStream { continuation in
             Task {
                 do {
-                    let stream = try await container.perform { [weak self] model, tokenizer in
+                    let stream = try await container.perform { [weak self] _, model, tokenizer in
                         
                         let prompt = LLMGenerator.formatPrompt(messages: messages, tokenizer: tokenizer)
                         let inputIds = tokenizer.encode(text: prompt)
@@ -174,7 +174,7 @@ final class MLXProvider {
                         await ResourceGuard.shared.releaseTokens(tokenCount)
                         
                         let latency = Date().timeIntervalSince(startTime) * 1000
-                        SecurityLogger.log(.generationCompleted,
+                        SecurityLogger.logPublic(.generationCompleted,
                                                 details: "Generated \(tokenCount) tokens in \(Int(latency))ms")
                     }
                     
@@ -237,7 +237,7 @@ struct LLMGenerator: @unchecked Sendable {
                         : prompt
                     
                     if prompt.count > maxContext {
-                        SecurityLogger.log(.invalidInput,
+                        SecurityLogger.logPublic(.promptTruncated,
                                                  details: "Prompt truncated to \(maxContext) tokens")
                     }
 
@@ -311,7 +311,7 @@ struct LLMGenerator: @unchecked Sendable {
             let sortedProbs = probs[sortedIndices]
             let cumsumProbs = cumsum(sortedProbs, axis: -1)
 
-            let maskToRemove = (cumsumProbs - sortedProbs) > topP
+            let maskToRemove = (cumsumProbs - sortedProbs) > MLXArray(topP)
 
             if maskToRemove.all().item(Bool.self) == true {
                 return categorical(processed)
