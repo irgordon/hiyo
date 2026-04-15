@@ -68,7 +68,7 @@ public final class LLMModelFactory: Sendable {
         // Configure Hub with SecureMLX cache
         // This ensures models are downloaded to and loaded from the secure cache directory.
         let secureCache = try SecureMLX.secureCacheDirectory()
-        let hub = HubApi(downloadBase: secureCache)
+        let hub = Hub.HubApi(downloadBase: secureCache)
 
         logger.logPublic(.modelLoaded, details: "Loading model \(modelId)")
 
