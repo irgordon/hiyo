@@ -103,14 +103,14 @@ enum CodeIntegrity {
 
 enum SecurityLogger {
     private static let logger = Logger(subsystem: "ai.hiyo.mac", category: "security")
-    
+
     static func log(_ event: SecurityEvent, details: String) {
         logger.error("[SECURITY] \(event.rawValue): \(details)")
-        
+
         // In production, you might want to send to a secure logging service
         // or write to an encrypted local log file
     }
-    
+
     enum SecurityEvent: String {
         case integrityCheckFailed = "INTEGRITY_CHECK_FAILED"
         case integrityViolation = "INTEGRITY_VIOLATION"
