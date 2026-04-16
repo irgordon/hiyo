@@ -17,7 +17,7 @@ struct ReadyStateView: View {
                 Circle()
                     .fill(
                         LinearGradient(
-                            colors: [Color.accentColor.opacity(0.3), Color.accentColor.opacity(0.1)],
+                            colors: [.accentColor.opacity(0.3), .accentColor.opacity(0.1)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
