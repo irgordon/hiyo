@@ -94,7 +94,7 @@ struct ContentView: View {
                     }
                 }) {
                     Image(systemName: "sidebar.right")
-                        .foregroundStyle(nav.isInspectorVisible ? .accentColor : .secondary)
+                        .foregroundStyle(nav.isInspectorVisible ? Color.accentColor : Color.secondary)
                 }
                 .disabled(nav.selectedChat == nil)
                 .help("Toggle Inspector")
