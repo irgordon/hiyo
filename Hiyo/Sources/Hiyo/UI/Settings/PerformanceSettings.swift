@@ -13,7 +13,7 @@ struct PerformanceSettings: View {
     @AppStorage(StorageKeys.temperature) private var temperature = 0.7
     @AppStorage(StorageKeys.maxTokens) private var maxTokens = 1024
     @AppStorage(StorageKeys.contextLength) private var contextLength = 4096
-    
+
     @State private var showingCacheCleared = false
     
     var body: some View {
@@ -26,9 +26,9 @@ struct PerformanceSettings: View {
                         Text("\(Int(gpuCacheLimit)) MB")
                             .monospacedDigit()
                     }
-                    
+
                     Slider(value: $gpuCacheLimit, in: 512...4096, step: 256)
-                    
+
                     Text("Higher values improve performance but use more RAM. Changes take effect after reloading the model.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -43,11 +43,11 @@ struct PerformanceSettings: View {
                 } message: {
                     Text("GPU memory cache has been cleared.")
                 }
-                
+
                 LabeledContent("Active Memory", value: "\(MLX.GPU.activeMemory / 1024 / 1024) MB")
                 LabeledContent("Peak Memory", value: "\(MLX.GPU.peakMemory / 1024 / 1024) MB")
             }
-            
+
             Section("Generation Parameters") {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
@@ -55,9 +55,9 @@ struct PerformanceSettings: View {
                         Spacer()
                         Text(String(format: "%.1f", temperature))
                     }
-                    
+
                     Slider(value: $temperature, in: 0...2, step: 0.1)
-                    
+
                     Text("Lower values produce more focused output, higher values more creative.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -70,13 +70,13 @@ struct PerformanceSettings: View {
                         Text("\(maxTokens)")
                             .monospacedDigit()
                     }
-                    
+
                     Slider(value: .init(
                         get: { Double(maxTokens) },
                         set: { maxTokens = Int($0) }
                     ), in: 256...4096, step: 256)
                 }
-                
+
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Text("Context Length")
