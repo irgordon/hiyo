@@ -5,7 +5,6 @@
 //  MLX status indicator for toolbar.
 //
 
-import SwiftUI
 
 struct ConnectionStatusBadge: View {
     var provider: MLXProvider

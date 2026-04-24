@@ -13,16 +13,16 @@ struct ConversationSidebar: View {
     @Environment(HiyoStore.self) var store
     @Environment(MLXProvider.self) var provider
 
-    @Query(sort: \Chat.modifiedAt, order: .reverse)
-    var summaries: [Chat]
+    @Query(sort: \ChatSummary.modifiedAt, order: .reverse)
+    var summaries: [ChatSummary]
     
     @State private var searchText = ""
     @State private var debouncedSearchText = ""
-    @State private var summaryToDelete: Chat?
+    @State private var summaryToDelete: ChatSummary?
     @State private var showingDeleteConfirmation = false
     
     // Filtered summaries
-    private var filteredSummaries: [Chat] {
+    private var filteredSummaries: [ChatSummary] {
         if debouncedSearchText.isEmpty {
             return summaries
         }
@@ -35,7 +35,7 @@ struct ConversationSidebar: View {
         VStack(spacing: 0) {
             searchField
             
-            // Note: selection parameter removed because of type mismatch (Chat vs Chat).
+            // Note: selection parameter removed because of type mismatch (ChatSummary vs Chat).
             // Selection is handled via ConversationRow's onTapGesture and isSelected state.
             List {
                 Section {
@@ -174,8 +174,8 @@ private extension ConversationSidebar {
         offsets.map { filteredSummaries[$0] }.forEach(deleteSummary)
     }
 
-    func deleteSummary(_ summary: Chat) {
-        if let chat = store.modelContext.model(for: summary.id) {
+    func deleteSummary(_ summary: ChatSummary) {
+        if let chat = store.modelContext.model(for: summary.id, as: Chat.self) {
             store.deleteChat(chat)
             if nav.selectedChat?.id == chat.id {
                 nav.deselectChat()
@@ -183,14 +183,14 @@ private extension ConversationSidebar {
         }
     }
 
-    func duplicateChat(_ summary: Chat) {
-        if let chat = store.modelContext.model(for: summary.id) {
+    func duplicateChat(_ summary: ChatSummary) {
+        if let chat = store.modelContext.model(for: summary.id, as: Chat.self) {
             store.duplicateChat(chat)
         }
     }
     
-    func renameChat(_ summary: Chat) {
-        guard let chat = store.modelContext.model(for: summary.id) else { return }
+    func renameChat(_ summary: ChatSummary) {
+        guard let chat = store.modelContext.model(for: summary.id, ) else { return }
 
         // Replace with SwiftUI-native rename UI later
         let alert = NSAlert()
@@ -211,3 +211,4 @@ private extension ConversationSidebar {
     }
 }
 
+}
