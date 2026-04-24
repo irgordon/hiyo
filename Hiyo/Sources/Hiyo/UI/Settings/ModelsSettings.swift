@@ -80,7 +80,7 @@ struct ModelsSettings: View {
                     Text(provider.currentModel == "None" ? "No model loaded" : "Active: \(provider.currentModel.displayName)")
                         .font(.caption)
                     
-                    Text("MLX \(MLX.version)")
+                    Text("MLX v0.1.0")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
