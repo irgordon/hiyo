@@ -153,7 +153,7 @@ final class MLXProvider {
         return AsyncStream { continuation in
             Task {
                 do {
-                    let stream = try await container.perform { [weak self] _, model, tokenizer in
+                    let stream = try await container.perform { [weak self] model, tokenizer in
                         
                         let prompt = LLMGenerator.formatPrompt(messages: messages, tokenizer: tokenizer)
                         let inputIds = tokenizer.encode(text: prompt)
@@ -311,7 +311,7 @@ struct LLMGenerator: @unchecked Sendable {
             let sortedProbs = probs[sortedIndices]
             let cumsumProbs = cumsum(sortedProbs, axis: -1)
 
-            let maskToRemove = (cumsumProbs - sortedProbs) > MLXArray(topP)
+            let maskToRemove = (cumsumProbs - sortedProbs) > Float(topP)
 
             if maskToRemove.all().item(Bool.self) == true {
                 return categorical(processed)
