@@ -20,14 +20,14 @@ func loadTokenizerConfig(configuration: ModelConfiguration, hub: HubApi) async t
     let config: LanguageModelConfigurationFromHub
 
     if let directory = configuration.overrideDirectory {
-        config = LanguageModelConfigurationFromHub(modelFolder: directory, hubApi: hub)
+        config = LanguageModelConfigurationFromHub(modelName: modelFolder: directory)
     } else {
         let id = configuration.id
         do {
             // the load can fail (async when we try to use it)
-            let loaded = LanguageModelConfigurationFromHub(
-                modelName: configuration.tokenizerId ?? id, hubApi: hub)
-            _ = try await loaded.tokenizerConfig
+            let loaded = LanguageModelConfigurationFromHub(modelName:
+                modelName: configuration.tokenizerId ?? id)
+            _ = loaded.tokenizerConfig
             config = loaded
         } catch {
             let nserror = error as NSError
@@ -36,7 +36,7 @@ func loadTokenizerConfig(configuration: ModelConfiguration, hub: HubApi) async t
             {
                 // Internet connection appears to be offline -- fall back to loading from
                 // the local directory (assumes it was downloaded to default cache)
-                // But LanguageModelConfigurationFromHub(modelName:) checks cache?
+                // But LanguageModelConfigurationFromHub(modelName: modelName:) checks cache?
                 // We will rethrow for now as we don't have easy access to cache path logic here
                 throw error
             } else {

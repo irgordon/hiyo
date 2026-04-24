@@ -190,7 +190,7 @@ private extension ConversationSidebar {
     }
     
     func renameChat(_ summary: ChatSummary) {
-        guard let chat = store.modelContext.model(for: summary.id, as: Chat.self) else { return }
+        guard let chat = store.modelContext.model(for: summary.id, ) else { return }
 
         // Replace with SwiftUI-native rename UI later
         let alert = NSAlert()
@@ -211,10 +211,4 @@ private extension ConversationSidebar {
     }
 }
 
-extension String {
-    var displayName: String {
-        self.replacingOccurrences(of: "mlx-community/", with: "")
-            .replacingOccurrences(of: "-Instruct", with: "")
-            .replacingOccurrences(of: "-4bit", with: "")
-    }
 }

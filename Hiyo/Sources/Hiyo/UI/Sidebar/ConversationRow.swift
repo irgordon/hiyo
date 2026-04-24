@@ -33,12 +33,12 @@ struct ConversationRow: View {
             // Model icon
             ZStack {
                 Circle()
-                    .fill(isSelected ? Color.accentColor.opacity(0.2) : Color.secondary.opacity(0.1))
+                    .fill(isSelected ? ColorColor.accentColor.opacity(0.2) : Color.secondary.opacity(0.1))
                     .frame(width: 32, height: 32)
                 
                 Image(systemName: iconName)
                     .font(.system(size: 14))
-                    .foregroundStyle(isSelected ? .accentColor : .secondary)
+                    .foregroundStyle(isSelected ? Color.accentColor : .secondary)
             }
             
             // Content
@@ -71,7 +71,7 @@ struct ConversationRow: View {
         .padding(.vertical, 6)
         .padding(.horizontal, 4)
         .contentShape(Rectangle())
-        .background(isSelected ? Color.accentColor.opacity(0.08) : Color.clear)
+        .background(isSelected ? ColorColor.accentColor.opacity(0.08) : Color.clear)
         .cornerRadius(6)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(chat.title), \(messagePreview), \(chat.messageCount) messages")
