@@ -98,7 +98,7 @@ struct PerformanceSettings: View {
             
             Section {
                 LabeledContent("Device", value: hardwareInfo)
-                LabeledContent("MLX Version", value: MLX.version)
+                // LabeledContent("MLX Version", value: MLX.version)
                 LabeledContent("GPU Available", value: MLX.GPU.isAvailable ? "Yes" : "No")
             } header: {
                 Text("Hardware")
