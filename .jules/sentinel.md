@@ -12,3 +12,8 @@
 **Vulnerability:** A literal backslash zero `"\\0"` was used in an array of blocked characters instead of the actual null byte character `"\0"`. This allowed null bytes to pass through the validation filter since it was looking for the literal string `\0` rather than the byte value 0.
 **Learning:** In Swift, `"\0"` represents the actual null byte, while `"\\0"` represents two characters: a backslash and a zero.
 **Prevention:** Always verify that escape sequences used in security validation actually represent the intended character/byte value rather than literal strings.
+
+## 2026-04-26 - Unhandled SecRandomCopyBytes OSStatus
+**Vulnerability:** The application was discarding the `OSStatus` returned by `SecRandomCopyBytes` using the `_ =` operator. This could result in a silent failure to generate random bytes, leading to the use of a predictable, all-zero cryptographic key.
+**Learning:** System cryptographic and security APIs often return an `OSStatus` to indicate success or failure. Discarding these results can lead to severe security vulnerabilities, such as compromised encryption.
+**Prevention:** System cryptographic and security APIs (like `SecRandomCopyBytes`) must never have their results discarded. Always explicitly verify the returned `OSStatus` is `errSecSuccess` and handle failures appropriately.
