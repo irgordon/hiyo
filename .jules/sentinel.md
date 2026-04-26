@@ -17,3 +17,8 @@
 **Vulnerability:** The application was discarding the `OSStatus` returned by `SecRandomCopyBytes` using the `_ =` operator. This could result in a silent failure to generate random bytes, leading to the use of a predictable, all-zero cryptographic key.
 **Learning:** System cryptographic and security APIs often return an `OSStatus` to indicate success or failure. Discarding these results can lead to severe security vulnerabilities, such as compromised encryption.
 **Prevention:** System cryptographic and security APIs (like `SecRandomCopyBytes`) must never have their results discarded. Always explicitly verify the returned `OSStatus` is `errSecSuccess` and handle failures appropriately.
+
+## 2026-04-26 - Node 20 GitHub Actions Deprecation
+**Vulnerability:** The CI workflow `.github/workflows/ci.yml` uses actions that depend on Node.js 20, which is deprecated and will fail in future environments.
+**Learning:** Outdated dependencies in CI can cause sudden pipeline failures, blocking security updates and features.
+**Prevention:** CI workflows should be regularly audited and updated. For CodeQL, use `github/codeql-action/init@v4`.
