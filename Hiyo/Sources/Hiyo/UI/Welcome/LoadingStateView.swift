@@ -20,7 +20,7 @@ struct LoadingStateView: View {
                 
                 Circle()
                     .trim(from: 0, to: provider.loadingProgress)
-                    .stroke(.accent, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                    .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 4, lineCap: .round))
                     .frame(width: 80, height: 80)
                     .rotationEffect(.degrees(-90))
                     .animation(.easeInOut(duration: 0.3), value: provider.loadingProgress)
@@ -35,7 +35,7 @@ struct LoadingStateView: View {
                     .font(.title2)
                     .fontWeight(.semibold)
                 
-                Text(provider.currentModel.displayName)
+                Text(provider.currentModel.modelDisplayName)
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
