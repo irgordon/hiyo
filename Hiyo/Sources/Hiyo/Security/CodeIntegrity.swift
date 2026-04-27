@@ -18,7 +18,7 @@ enum CodeIntegrity {
         #if os(macOS)
         var code: SecCode?
         let status = SecCodeCopySelf(
-            SecCSFlags(rawValue: kSecCSDefaultFlags),
+            SecCSFlags(rawValue: 0),
             &code
         )
         

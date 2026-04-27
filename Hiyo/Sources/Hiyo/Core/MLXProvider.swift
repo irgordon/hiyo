@@ -311,7 +311,7 @@ struct LLMGenerator: @unchecked Sendable {
             let sortedProbs = probs[sortedIndices]
             let cumsumProbs = cumsum(sortedProbs, axis: -1)
 
-            let maskToRemove = (cumsumProbs - sortedProbs) > MLXArray(topP)
+            let maskToRemove = (cumsumProbs - sortedProbs) .> topP
 
             if maskToRemove.all().item(Bool.self) == true {
                 return categorical(processed)

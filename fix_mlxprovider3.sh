@@ -1,0 +1,1 @@
+sed -i 's/let stream = try await container.perform { \[weak self\] (_, model, tokenizer) in/let stream = try await container.perform { \[weak self\] (_, model: LLMModel, tokenizer: Tokenizer) in/g' Hiyo/Sources/Hiyo/Core/MLXProvider.swift

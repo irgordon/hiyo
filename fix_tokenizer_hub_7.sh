@@ -1,0 +1,1 @@
+sed -i 's/configuration: configuration, hub: hub)/configuration: configuration, hub: hub)\n\n    return try PreTrainedTokenizer(tokenizerConfig: tokenizerConfig, tokenizerData: tokenizerData)/g' Hiyo/Sources/Hiyo/Core/LLM/Tokenizer.swift
