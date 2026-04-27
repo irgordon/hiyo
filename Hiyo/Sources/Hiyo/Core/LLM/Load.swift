@@ -16,12 +16,12 @@ func prepareModelDirectory(
     }
 
     // download the model weights
-    let repo = Hub.Repo(id: configuration.id)
+    let repo = Repo(id: configuration.id)
     let modelFiles = ["*.safetensors", "config.json"]
     do {
         return try await hub.snapshot(
             from: repo, matching: modelFiles, progressHandler: progressHandler)
-    } catch Hub.HubClientError.authorizationRequired {
+    } catch HubClientError.authorizationRequired {
         // an authorizationRequired means (typically) that the named repo doesn't exist on
         // on the server so retry with local only configuration
         // For struct ModelConfiguration, we don't have a 'local only' fallback method
@@ -108,5 +108,5 @@ public func loadModelContainer(
     let modelDirectory = try await prepareModelDirectory(
         hub: hub, configuration: configuration, progressHandler: progressHandler)
     return try await ModelContainer(
-        hub: hub, modelDirectory: modelDirectory, configuration: configuration)
+        modelDirectory: modelDirectory, configuration: configuration)
 }

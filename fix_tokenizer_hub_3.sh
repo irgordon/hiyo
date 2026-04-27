@@ -1,0 +1,1 @@
+sed -i 's/LanguageModelConfigurationFromHub(\n                modelName: configuration.tokenizerId ?? id, hubApi: hub)/LanguageModelConfigurationFromHub(modelName: configuration.tokenizerId ?? id, hubApi: hub)/g' Hiyo/Sources/Hiyo/Core/LLM/Tokenizer.swift

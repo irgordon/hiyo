@@ -4,16 +4,17 @@ import Foundation
 import Hub
 import Tokenizers
 
-public func loadTokenizer(configuration: ModelConfiguration, hub: HubApi) async throws -> Tokenizer
+public func loadTokenizer(configuration: ModelConfiguration, hub: HubApi = HubApi()) async throws -> Tokenizer
 {
     let (tokenizerConfig, tokenizerData) = try await loadTokenizerConfig(
         configuration: configuration, hub: hub)
 
     return try PreTrainedTokenizer(
         tokenizerConfig: tokenizerConfig, tokenizerData: tokenizerData)
+
 }
 
-func loadTokenizerConfig(configuration: ModelConfiguration, hub: HubApi) async throws -> (
+func loadTokenizerConfig(configuration: ModelConfiguration, hub: HubApi = HubApi()) async throws -> (
     Config, Config
 ) {
     // from AutoTokenizer.from() -- this lets us override parts of the configuration

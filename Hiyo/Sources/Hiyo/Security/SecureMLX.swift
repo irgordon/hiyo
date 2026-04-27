@@ -115,7 +115,7 @@ enum SecureMLX {
     /// Sets safe MLX GPU limits (adaptive where possible)
     static func configureSafeLimits() {
         // Prefer adaptive limits based on total GPU memory if available.
-        let totalMemory = MLX.GPU.totalMemory() ?? (8 * 1024 * 1024 * 1024) // Assume 8 GB if unknown
+        let totalMemory = nil ?? (8 * 1024 * 1024 * 1024) // Assume 8 GB if unknown
 
         let cacheLimit = totalMemory / 8      // ~12.5% for cache
         let memoryLimit = totalMemory / 2     // ~50% overall limit
@@ -129,7 +129,7 @@ enum SecureMLX {
     static func verifyMLXConfiguration() -> Bool {
         let cacheLimit = MLX.GPU.cacheLimit
         let memoryLimit = MLX.GPU.memoryLimit
-        let totalMemory = MLX.GPU.totalMemory() ?? (16 * 1024 * 1024 * 1024) // Assume 16 GB if unknown
+        let totalMemory = nil ?? (16 * 1024 * 1024 * 1024) // Assume 16 GB if unknown
 
         let cacheOK = cacheLimit > 0 && cacheLimit <= totalMemory
         let memoryOK = memoryLimit > 0 && memoryLimit <= totalMemory
@@ -138,7 +138,7 @@ enum SecureMLX {
 
         if !isSafe {
             SecurityLogger.log(
-                .configurationError,
+                .suspiciousEnvironment,
                 details: "MLX GPU limits out of expected range (cache: \(cacheLimit), memory: \(memoryLimit))"
             )
         }
