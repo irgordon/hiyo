@@ -76,7 +76,7 @@ struct ConversationSidebar: View {
             
             statusBar
         }
-        .background(Color("sidebarBackground", bundle: .module))
+        .background(Color("sidebarBackground"))
         .task(id: searchText) {
             do {
                 try await Task.sleep(for: .milliseconds(250))
