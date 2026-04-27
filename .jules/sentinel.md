@@ -12,3 +12,8 @@
 **Vulnerability:** A literal backslash zero `"\\0"` was used in an array of blocked characters instead of the actual null byte character `"\0"`. This allowed null bytes to pass through the validation filter since it was looking for the literal string `\0` rather than the byte value 0.
 **Learning:** In Swift, `"\0"` represents the actual null byte, while `"\\0"` represents two characters: a backslash and a zero.
 **Prevention:** Always verify that escape sequences used in security validation actually represent the intended character/byte value rather than literal strings.
+
+## 2026-04-27 - Unchecked Cryptographic RNG Status
+**Vulnerability:** The application was discarding the `OSStatus` result from `SecRandomCopyBytes` using `_ =`. If random number generation failed, it would silently proceed with a zeroed-out, predictable buffer as an encryption key.
+**Learning:** System security APIs often return an error status rather than throwing Swift errors or crashing. Explicitly discarding these results hides silent security failures.
+**Prevention:** Always capture and verify the `OSStatus` result of cryptographic and security APIs (like `SecRandomCopyBytes`) against `errSecSuccess`, and handle failures securely.
