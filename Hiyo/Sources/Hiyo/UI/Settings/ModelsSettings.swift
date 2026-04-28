@@ -9,7 +9,7 @@ import SwiftUI
 import MLX
 
 struct ModelsSettings: View {
-    @StateObject private var provider = MLXProvider()
+    @Environment(MLXProvider.self) var provider
     @State private var showingAddModel = false
     
     var body: some View {
@@ -79,10 +79,6 @@ struct ModelsSettings: View {
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(provider.currentModel == "None" ? "No model loaded" : "Active: \(provider.currentModel.displayName)")
                         .font(.caption)
-                    
-                    Text("MLX \(MLX.version)")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
                 }
             }
             .padding()

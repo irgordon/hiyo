@@ -1,0 +1,11 @@
+--- Hiyo/Sources/Hiyo/UI/Sidebar/ConversationSidebar.swift
++++ Hiyo/Sources/Hiyo/UI/Sidebar/ConversationSidebar.swift
+@@ -190,7 +190,7 @@
+     }
+
+     func renameChat(_ summary: ChatSummary) {
+-        guard let chat = store.modelContext.model(for: summary.id) as? Chat { return }
++        guard let chat = store.modelContext.model(for: summary.id) as? Chat else { return }
+
+         // Replace with SwiftUI-native rename UI later
+         let alert = NSAlert()
