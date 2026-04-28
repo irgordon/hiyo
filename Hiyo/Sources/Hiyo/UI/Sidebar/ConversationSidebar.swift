@@ -190,7 +190,7 @@ private extension ConversationSidebar {
     }
     
     func renameChat(_ summary: ChatSummary) {
-        guard let chat = store.modelContext.model(for: summary.id) as? Chat { return }
+        guard let chat = store.modelContext.model(for: summary.id) as? Chat else { return }
 
         // Replace with SwiftUI-native rename UI later
         let alert = NSAlert()
