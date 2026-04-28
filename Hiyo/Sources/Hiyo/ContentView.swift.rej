@@ -26,9 +26,3 @@
 -        if provider.isLoading { return .orange }
 -        return provider.isAvailable ? .green : .red
 -    }
--
--    private var statusText: String {
--        if provider.isLoading { return "Loading" }
--        return provider.isAvailable ? "Ready" : "Offline"
--    }
--}
