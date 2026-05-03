@@ -379,10 +379,14 @@ final class HiyoStore {
         
         // Generate new key
         var keyData = Data(count: 32)
-        _ = keyData.withUnsafeMutableBytes {
+        let status = keyData.withUnsafeMutableBytes {
             SecRandomCopyBytes(kSecRandomDefault, 32, $0.baseAddress!)
         }
         
+        guard status == errSecSuccess else {
+            throw SecurityError.keyGenerationFailed(status)
+        }
+
         let key = SymmetricKey(data: keyData)
         
         // Store in keychain
@@ -398,6 +402,7 @@ final class HiyoStore {
 enum SecurityError: Error {
     case encryptionFailed
     case validationFailed(String)
+    case keyGenerationFailed(OSStatus)
 }
 
 // MARK: - Import DTOs
