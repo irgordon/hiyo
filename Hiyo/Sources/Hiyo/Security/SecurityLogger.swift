@@ -58,6 +58,9 @@ enum SecurityLogger {
         // Integrity
         case integrityCheckFailed = "INTEGRITY_CHECK_FAILED"
         case integrityViolation = "INTEGRITY_VIOLATION"
+        case promptTruncated = "PROMPT_TRUNCATED"
+        case injectionDetected = "INJECTION_DETECTED"
+        case networkError = "NETWORK_ERROR"
         case suspiciousEnvironment = "SUSPICIOUS_ENVIRONMENT"
         
         // Sandbox
@@ -65,6 +68,7 @@ enum SecurityLogger {
         case invalidFileAccess = "INVALID_FILE_ACCESS"
         
         // Input
+        case initializationFailed = "INITIALIZATION_FAILED"
         case invalidInput = "INVALID_INPUT"
         case injectionAttempt = "INJECTION_ATTEMPT"
         

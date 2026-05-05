@@ -48,7 +48,7 @@ public actor ModelContainer {
         let (tokenizerConfig, tokenizerData) = try await loadTokenizerConfig(
             configuration: configuration, hub: hub)
         self.tokenizer = try PreTrainedTokenizer(
-            tokenizerConfig: tokenizerConfig, tokenizerData: tokenizerData)
+            tokenizerConfig: tokenizerConfig, tokenizerData: tokenizerData, mergesData: nil)
     }
 
     /// Perform an action on the model and/or tokenizer.  Callers _must_ eval any `MLXArray` before returning as
