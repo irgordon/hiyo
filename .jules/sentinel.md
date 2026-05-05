@@ -12,3 +12,8 @@
 **Vulnerability:** A literal backslash zero `"\\0"` was used in an array of blocked characters instead of the actual null byte character `"\0"`. This allowed null bytes to pass through the validation filter since it was looking for the literal string `\0` rather than the byte value 0.
 **Learning:** In Swift, `"\0"` represents the actual null byte, while `"\\0"` represents two characters: a backslash and a zero.
 **Prevention:** Always verify that escape sequences used in security validation actually represent the intended character/byte value rather than literal strings.
+
+## 2026-04-20 - Unchecked Cryptographic API Results
+**Vulnerability:** The application called `SecRandomCopyBytes` to generate an encryption key, but explicitly discarded its return value with `_ =`. If random generation failed, the key buffer would remain uninitialized (all zeros), resulting in a highly predictable encryption key that fails open.
+**Learning:** System cryptographic APIs and security functions must never have their status results ignored. A failure in key generation should securely fail the entire operation rather than silently producing an insecure key.
+**Prevention:** Always verify the returned `OSStatus` (e.g., `errSecSuccess`) from system security APIs and explicitly handle failures by throwing an appropriate error. Never discard cryptographic API results.
