@@ -138,7 +138,7 @@ enum SecureMLX {
 
         if !isSafe {
             SecurityLogger.log(
-                .configurationError,
+                .initializationFailed,
                 details: "MLX GPU limits out of expected range (cache: \(cacheLimit), memory: \(memoryLimit))"
             )
         }
