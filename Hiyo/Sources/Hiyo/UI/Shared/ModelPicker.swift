@@ -24,12 +24,3 @@ struct ModelPicker: View {
     }
 }
 
-extension MLXModel {
-    var displayName: String {
-        // Shorten common prefixes for cleaner UI
-        name
-            .replacingOccurrences(of: "mlx-community/", with: "")
-            .replacingOccurrences(of: "-Instruct", with: "")
-            .replacingOccurrences(of: "-4bit", with: "")
-    }
-}
