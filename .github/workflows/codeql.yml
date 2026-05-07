@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [ main ]
   schedule:
-    - cron: '0 3 * * 1'   # Weekly scan (optional)
+    - cron: '0 3 * * 1'
 
 jobs:
   analyze:
@@ -18,22 +18,45 @@ jobs:
       contents: read
       security-events: write
 
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Xcode
+      # ---------------------------------------------------------
+      # Xcode
+      # ---------------------------------------------------------
+      - name: Select Xcode 16.2
         run: sudo xcode-select -s /Applications/Xcode_16.2.app
 
+      - name: Verify Xcode version
+        run: xcodebuild -version
+
+      # ---------------------------------------------------------
+      # Cache SwiftPM
+      # ---------------------------------------------------------
+      - name: Cache SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            .build
+            ~/.swiftpm
+          key: swiftpm-${{ runner.os }}-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: swiftpm-${{ runner.os }}-
+
+      # ---------------------------------------------------------
+      # Initialize CodeQL
+      # ---------------------------------------------------------
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
           languages: swift
-          # Optional: enable additional CodeQL packs
           # packs: codeql/swift-queries
 
       # ---------------------------------------------------------
-      # MANUAL BUILD STEP (required for Swift)
+      # Build (required for Swift)
       # ---------------------------------------------------------
       - name: Build Swift project (SPM)
         run: |
@@ -41,15 +64,7 @@ jobs:
           swift build --configuration release
 
       # ---------------------------------------------------------
-      # OPTIONAL: Build Xcode app target if needed
+      # Analyze
       # ---------------------------------------------------------
-      # - name: Build macOS app target
-      #   run: |
-      #     xcodebuild \
-      #       -scheme Hiyo \
-      #       -configuration Release \
-      #       -destination 'platform=macOS' \
-      #       build
-
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
