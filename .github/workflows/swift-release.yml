@@ -1,4 +1,4 @@
-name: "Swift Release"
+name: "Hiyo Release"
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   release:
-    name: Build & Publish Swift Release
+    name: Build & Publish Hiyo Release
     runs-on: macos-14
 
     permissions:
@@ -16,28 +16,49 @@ jobs:
 
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      PRODUCT_NAME: Hiyo
 
     steps:
-      - name: Checkout
+      # ---------------------------------------------------------
+      # Checkout
+      # ---------------------------------------------------------
+      - name: Checkout repository
         uses: actions/checkout@v4
 
+      # ---------------------------------------------------------
+      # Xcode pinning (Hiyo requires 16.2)
+      # ---------------------------------------------------------
       - name: Select Xcode 16.2
         run: sudo xcode-select -s /Applications/Xcode_16.2.app
 
-      - name: Build (Release)
+      - name: Verify Xcode version
+        run: xcodebuild -version
+
+      # ---------------------------------------------------------
+      # Build universal macOS binary (arm64 + x86_64)
+      # ---------------------------------------------------------
+      - name: Build Hiyo (universal)
         run: |
-          swift build -c release
+          swift build -c release --arch arm64 --arch x86_64
           mkdir -p artifacts
-          cp .build/release/* artifacts/
+          cp .build/apple/Products/Release/${PRODUCT_NAME} artifacts/${PRODUCT_NAME}
 
-      - name: Create ZIP archive
+      # ---------------------------------------------------------
+      # Create ZIP archive
+      # ---------------------------------------------------------
+      - name: Create release archive
         run: |
+          TAG="${GITHUB_REF_NAME}"
+          ZIP_NAME="${PRODUCT_NAME}-${TAG}.zip"
           cd artifacts
-          zip -r "../${{ github.ref_name }}.zip" .
+          zip -r "../${ZIP_NAME}" .
 
-      - name: Create GitHub Release
+      # ---------------------------------------------------------
+      # Publish GitHub Release
+      # ---------------------------------------------------------
+      - name: Publish Release
         uses: softprops/action-gh-release@v2
         with:
-          files: "${{ github.ref_name }}.zip"
+          files: "${{ env.PRODUCT_NAME }}-${{ github.ref_name }}.zip"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
