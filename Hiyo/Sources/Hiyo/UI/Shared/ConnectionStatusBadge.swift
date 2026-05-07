@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ConnectionStatusBadge: View {
     @ObservedObject var provider: MLXProvider
-    
+
     var body: some View {
         HStack(spacing: 6) {
             Circle()
@@ -24,7 +24,7 @@ struct ConnectionStatusBadge: View {
         .cornerRadius(6)
         .help(helpText)
     }
-    
+
     private var statusColor: Color {
         if provider.isLoading {
             return .orange
@@ -34,7 +34,7 @@ struct ConnectionStatusBadge: View {
         }
         return .red
     }
-    
+
     private var statusText: String {
         if provider.isLoading {
             return "Loading \(Int(provider.loadingProgress * 100))%"
@@ -45,7 +45,7 @@ struct ConnectionStatusBadge: View {
         }
         return "Setup"
     }
-    
+
     private var backgroundStyle: some View {
         RoundedRectangle(cornerRadius: 6)
             .fill(.ultraThinMaterial)
@@ -54,7 +54,7 @@ struct ConnectionStatusBadge: View {
                     .stroke(statusColor.opacity(0.3), lineWidth: 1)
             )
     }
-    
+
     private var helpText: String {
         if provider.isLoading {
             return "Downloading and loading model into memory"
