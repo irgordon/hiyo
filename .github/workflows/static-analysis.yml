@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [ main ]
   schedule:
-    - cron: "0 4 * * 1"   # Weekly scan
+    - cron: "0 4 * * 1"
 
 jobs:
   static-analysis:
@@ -15,22 +15,37 @@ jobs:
 
     permissions:
       contents: read
-      security-events: write   # Required for SARIF upload
+      security-events: write
       actions: read
+
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       # ---------------------------------------------------------
+      # Cache Homebrew (massive speedup for SwiftLint + Semgrep)
+      # ---------------------------------------------------------
+      - name: Cache Homebrew
+        uses: actions/cache@v4
+        with:
+          path: |
+            /usr/local/Homebrew
+            /opt/homebrew
+            ~/Library/Caches/Homebrew
+          key: brew-${{ runner.os }}-${{ hashFiles('.github/workflows/**') }}
+          restore-keys: brew-${{ runner.os }}-
+
+      # ---------------------------------------------------------
       # Install SwiftLint
       # ---------------------------------------------------------
       - name: Install SwiftLint
-        run: |
-          brew install swiftlint
+        run: brew install swiftlint
 
       # ---------------------------------------------------------
-      # Run SwiftLint and output SARIF
+      # Run SwiftLint (SARIF)
       # ---------------------------------------------------------
       - name: Run SwiftLint (SARIF)
         run: |
@@ -41,11 +56,10 @@ jobs:
       # Install Semgrep
       # ---------------------------------------------------------
       - name: Install Semgrep
-        run: |
-          brew install semgrep
+        run: brew install semgrep
 
       # ---------------------------------------------------------
-      # Run Semgrep with Swift rules and output SARIF
+      # Run Semgrep (SARIF)
       # ---------------------------------------------------------
       - name: Run Semgrep (SARIF)
         run: |
@@ -59,7 +73,7 @@ jobs:
             || true
 
       # ---------------------------------------------------------
-      # Upload SARIF results to GitHub Code Scanning
+      # Upload SARIF to GitHub Code Scanning
       # ---------------------------------------------------------
       - name: Upload SwiftLint SARIF
         uses: github/codeql-action/upload-sarif@v4
