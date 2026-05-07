@@ -11,29 +11,26 @@ on:
 jobs:
   build-test-analyze:
     name: Build, Test, Lint, Scan
-    runs-on: macos-14   # REQUIRED for Xcode 16.2
+    runs-on: macos-14
 
     permissions:
       contents: read
       security-events: write
       actions: read
 
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ---------------------------------------------------------
-      # Pin Xcode to 16.2 (fixes MLX-Swift C++ allocator errors)
-      # ---------------------------------------------------------
       - name: Select Xcode 16.2
         run: sudo xcode-select -s /Applications/Xcode_16.2.app
 
       - name: Verify Xcode version
         run: xcodebuild -version
 
-      # ---------------------------------------------------------
-      # Build & Test (SwiftPM)
-      # ---------------------------------------------------------
       - name: Resolve dependencies
         run: swift package resolve
 
@@ -46,9 +43,6 @@ jobs:
       - name: Run UI Tests
         run: swift test --target HiyoUITests
 
-      # ---------------------------------------------------------
-      # SwiftLint
-      # ---------------------------------------------------------
       - name: Install SwiftLint
         run: brew install swiftlint
 
@@ -57,9 +51,6 @@ jobs:
           mkdir -p sarif
           swiftlint lint --reporter sarif > sarif/swiftlint.sarif || true
 
-      # ---------------------------------------------------------
-      # Semgrep
-      # ---------------------------------------------------------
       - name: Install Semgrep
         run: brew install semgrep
 
@@ -74,9 +65,6 @@ jobs:
             --output sarif/semgrep.sarif \
             || true
 
-      # ---------------------------------------------------------
-      # Upload SARIF to GitHub Code Scanning
-      # ---------------------------------------------------------
       - name: Upload SwiftLint SARIF
         uses: github/codeql-action/upload-sarif@v4
         with:
