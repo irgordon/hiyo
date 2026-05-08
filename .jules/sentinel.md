@@ -12,3 +12,8 @@
 **Vulnerability:** A literal backslash zero `"\\0"` was used in an array of blocked characters instead of the actual null byte character `"\0"`. This allowed null bytes to pass through the validation filter since it was looking for the literal string `\0` rather than the byte value 0.
 **Learning:** In Swift, `"\0"` represents the actual null byte, while `"\\0"` represents two characters: a backslash and a zero.
 **Prevention:** Always verify that escape sequences used in security validation actually represent the intended character/byte value rather than literal strings.
+
+## 2026-05-08 - SecureMemory Zeroing Bypass via Copy-On-Write
+**Vulnerability:** The `destroy()` method in `SecureMemory` created a local copy of its `Data` struct (`guard var data = value`) before mutating it to zero out memory. Due to Swift's Copy-On-Write (COW) semantics, mutating this local copy caused Swift to allocate a new buffer, zeroing the new buffer while leaving the original sensitive buffer intact in memory.
+**Learning:** In Swift, assigning a `Data` struct to a local variable and then mutating it with `withUnsafeMutableBytes` will trigger a reallocation if the original variable (`value`) still holds a reference. Zeroing the local copy is ineffective.
+**Prevention:** Mutate the original `Data` property directly using optional chaining (`value?.withUnsafeMutableBytes`) to ensure the uniquely-referenced buffer is zeroed out without triggering a COW reallocation.
