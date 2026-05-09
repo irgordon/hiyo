@@ -1,0 +1,7 @@
+🛡️ Sentinel: [CRITICAL] Fix unchecked SecRandomCopyBytes result
+
+🚨 Severity: CRITICAL
+💡 Vulnerability: The `SecRandomCopyBytes` OSStatus result was discarded when generating master encryption keys. If entropy generation failed, it could silently create zeroed or predictable keys.
+🎯 Impact: Predictable encryption keys leading to unencrypted sensitive user data and history.
+🔧 Fix: Captured and validated `errSecSuccess` status from `SecRandomCopyBytes` in `retrieveOrCreateEncryptionKey` and added new `SecurityError.randomGenerationFailed` handling. Also added entry to Sentinel journal.
+✅ Verification: Ran `semgrep` successfully showing no regressions or violations.
