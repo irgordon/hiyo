@@ -58,11 +58,7 @@ final class SecureMemory {
         lock.lock()
         defer { lock.unlock() }
 
-        guard var data = value else {
-            return
-        }
-
-        data.withUnsafeMutableBytes { ptr in
+        value?.withUnsafeMutableBytes { ptr in
             if let baseAddress = ptr.baseAddress {
                 memset(baseAddress, 0, ptr.count)
             }
