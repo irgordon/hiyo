@@ -81,5 +81,8 @@ enum SecurityLogger {
         case exportOperation = "EXPORT_OPERATION"
         case importOperation = "IMPORT_OPERATION"
         case dataCleared = "DATA_CLEARED"
+
+        // MLX
+        case configurationError = "CONFIGURATION_ERROR"
     }
 }
