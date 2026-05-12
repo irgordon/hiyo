@@ -379,8 +379,15 @@ final class HiyoStore {
         
         // Generate new key
         var keyData = Data(count: 32)
-        _ = keyData.withUnsafeMutableBytes {
-            SecRandomCopyBytes(kSecRandomDefault, 32, $0.baseAddress!)
+        let status = keyData.withUnsafeMutableBytes { buffer -> OSStatus in
+            guard let baseAddress = buffer.baseAddress else {
+                return errSecAllocate
+            }
+            return SecRandomCopyBytes(kSecRandomDefault, 32, baseAddress)
+        }
+
+        guard status == errSecSuccess else {
+            throw SecurityError.encryptionFailed
         }
         
         let key = SymmetricKey(data: keyData)
