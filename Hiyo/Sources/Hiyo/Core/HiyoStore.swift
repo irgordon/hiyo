@@ -383,7 +383,7 @@ final class HiyoStore {
             guard let baseAddress = buffer.baseAddress else {
                 return errSecAllocate
             }
-            return SecRandomCopyBytes(kSecRandomDefault, 32, baseAddress)
+            return SecRandomCopyBytes(kSecRandomDefault, buffer.count, baseAddress)
         }
 
         guard status == errSecSuccess else {
