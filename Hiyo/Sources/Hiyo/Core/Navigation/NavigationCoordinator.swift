@@ -31,7 +31,7 @@ final class NavigationCoordinator {
 
     /// Selects a chat from a ChatSummary projection.
     func selectChat(_ summary: ChatSummary) {
-        if let fullChat = store.modelContext.model(for: summary.id, as: Chat.self) {
+        if let fullChat = store.modelContext.model(for: summary.id) as? Chat {
             selectedChat = fullChat
         }
     }

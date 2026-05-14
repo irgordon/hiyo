@@ -45,8 +45,26 @@ public actor ModelContainer {
     ) async throws {
         self.model = try await loadLLM(modelDirectory: modelDirectory)
 
-        let (tokenizerConfig, tokenizerData) = try await loadTokenizerConfig(
-            configuration: configuration, hub: hub)
+        // from AutoTokenizer.from() -- this lets us override parts of the configuration
+            let config: LanguageModelConfigurationFromHub
+            if let directory = configuration.overrideDirectory {
+            config = LanguageModelConfigurationFromHub(modelFolder: directory)
+        } else {
+            let id = configuration.id
+            do {
+                let loaded = LanguageModelConfigurationFromHub(modelName: configuration.tokenizerId ?? id)
+                _ = try await loaded.tokenizerConfig
+                config = loaded
+            } catch {
+                throw error
+            }
+        }
+
+        guard var tokenizerConfig = try await config.tokenizerConfig else {
+            throw LLMError(message: "missing config")
+        }
+        let tokenizerData = try await config.tokenizerData
+
         self.tokenizer = try PreTrainedTokenizer(
             tokenizerConfig: tokenizerConfig, tokenizerData: tokenizerData)
     }

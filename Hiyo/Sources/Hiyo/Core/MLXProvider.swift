@@ -174,7 +174,7 @@ final class MLXProvider {
                         await ResourceGuard.shared.releaseTokens(tokenCount)
                         
                         let latency = Date().timeIntervalSince(startTime) * 1000
-                        SecurityLogger.logPublic(.generationCompleted,
+                        SecurityLogger.log(.generationCompleted,
                                                 details: "Generated \(tokenCount) tokens in \(Int(latency))ms")
                     }
                     
@@ -237,7 +237,7 @@ struct LLMGenerator: @unchecked Sendable {
                         : prompt
                     
                     if prompt.count > maxContext {
-                        SecurityLogger.logPublic(.promptTruncated,
+                        SecurityLogger.log(.generationCompleted,
                                                  details: "Prompt truncated to \(maxContext) tokens")
                     }
 
@@ -311,9 +311,9 @@ struct LLMGenerator: @unchecked Sendable {
             let sortedProbs = probs[sortedIndices]
             let cumsumProbs = cumsum(sortedProbs, axis: -1)
 
-            let maskToRemove = (cumsumProbs - sortedProbs) > MLXArray(topP)
+            let maskToRemove = (cumsumProbs - sortedProbs) .> topP
 
-            if maskToRemove.all().item(Bool.self) == true {
+            if maskToRemove.all().item(Bool.self) {
                 return categorical(processed)
             }
 
