@@ -34,10 +34,6 @@ func loadTokenizerConfig(configuration: ModelConfiguration, hub: HubApi) async t
             if nserror.domain == NSURLErrorDomain
                 && nserror.code == NSURLErrorNotConnectedToInternet
             {
-                // Internet connection appears to be offline -- fall back to loading from
-                // the local directory (assumes it was downloaded to default cache)
-                // But LanguageModelConfigurationFromHub(modelName:) checks cache?
-                // We will rethrow for now as we don't have easy access to cache path logic here
                 throw error
             } else {
                 throw error

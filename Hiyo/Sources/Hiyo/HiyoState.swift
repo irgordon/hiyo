@@ -106,26 +106,3 @@ extension Notification.Name {
 
 // MARK: - Secure Notification System
 
-enum SecureNotification {
-    static func post(name: Notification.Name, object: Any? = nil) {
-        NotificationCenter.default.post(name: name, object: object)
-    }
-
-    @discardableResult
-    static func observe(
-        name: Notification.Name,
-        object: AnyObject? = nil,
-        using: @escaping (Notification) -> Void
-    ) -> NSObjectProtocol {
-        NotificationCenter.default.addObserver(
-            forName: name,
-            object: object,
-            queue: .main,
-            using: using
-        )
-    }
-
-    static func remove(_ token: NSObjectProtocol) {
-        NotificationCenter.default.removeObserver(token)
-    }
-}

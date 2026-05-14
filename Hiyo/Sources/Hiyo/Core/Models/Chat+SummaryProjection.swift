@@ -7,8 +7,8 @@ import SwiftData
 
 extension Chat {
     /// Lightweight projection for list views.
-    static var summaryProjection: Projection<Chat, ChatSummary> {
-        Projection(
+    static var summaryProjection: SwiftData.Projection<Chat, ChatSummary> {
+        SwiftData.Projection(
             ChatSummary.self,
             \.id,
             \.title,
