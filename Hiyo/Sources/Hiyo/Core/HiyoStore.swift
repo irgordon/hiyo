@@ -384,7 +384,7 @@ final class HiyoStore {
         }
         
         guard status == errSecSuccess else {
-            throw SecurityError.encryptionFailed
+            fatalError("Failed to generate secure random bytes: \(status)")
         }
 
         let key = SymmetricKey(data: keyData)
