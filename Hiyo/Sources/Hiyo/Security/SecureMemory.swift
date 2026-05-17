@@ -94,7 +94,7 @@ struct SecureKey {
         }
 
         guard status == errSecSuccess else {
-            throw SecureMemoryError.randomGenerationFailed(status)
+            fatalError("CRITICAL SECURITY ERROR: Random number generation failed with status \(status)")
         }
 
         self.secureData = SecureMemory(keyData)
