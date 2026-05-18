@@ -12,7 +12,6 @@ import CryptoKit
 
 enum SecureMemoryError: Error {
     case destroyed
-    case randomGenerationFailed(OSStatus)
 }
 
 // MARK: - SecureMemory (Data-only)
@@ -94,7 +93,7 @@ struct SecureKey {
         }
 
         guard status == errSecSuccess else {
-            throw SecureMemoryError.randomGenerationFailed(status)
+            fatalError("CRITICAL: Random key generation failed with status \(status). Application halted to prevent insecure state.")
         }
 
         self.secureData = SecureMemory(keyData)
