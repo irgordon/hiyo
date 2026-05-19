@@ -17,3 +17,8 @@
 **Vulnerability:** In `SecureMemory.swift`, the `destroy()` method used `guard var data = value` to safely unwrap the optional. This triggered Swift's Copy-On-Write (COW) semantics when the `data` buffer was mutated via `withUnsafeMutableBytes`, causing the zeroing operation to run on a copy while the original buffer containing sensitive data was left intact in memory.
 **Learning:** Assigning a Swift value type (like `Data`) to a local variable and then mutating it can trigger COW when the underlying storage is shared or not uniquely referenced. In this case, both the stored property and the local copy referenced the same storage, so mutating the local variable caused the wipe to occur on a copied buffer instead of the original allocation.
 **Prevention:** When securely wiping memory, avoid mutating a separate local copy of a COW-backed value while its storage may still be shared. Instead, mutate the original optional property directly (for example, `value?.withUnsafeMutableBytes { ... }`) so the intended in-place buffer is zeroed.
+
+## 2026-05-19 - Unhandled SecRandomCopyBytes Error
+**Vulnerability:** The result of `SecRandomCopyBytes` was discarded using `_ =` when generating the master encryption key. If random generation failed, a predictably zeroed key would be used and stored, silently bypassing encryption security.
+**Learning:** System APIs that generate secure entropy must always have their return values checked. A failure in random number generation is a critical state that must not be silently ignored.
+**Prevention:** Always verify that `SecRandomCopyBytes` returns `errSecSuccess`. If it fails during critical key generation, use `fatalError` to safely terminate the application rather than proceeding in a compromised state.
