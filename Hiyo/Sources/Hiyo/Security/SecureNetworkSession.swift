@@ -19,9 +19,11 @@ final class SecureNetworkSession: NSObject {
         config.timeoutIntervalForResource = 300
         config.httpMaximumConnectionsPerHost = 0 // Block by default
         config.waitsForConnectivity = false
-        config.urlCredentialPersistence = .none
+
+        #if os(macOS) || os(iOS)
         config.httpCookieAcceptPolicy = .never
         config.httpShouldSetCookies = false
+        #endif
         
         return URLSession(
             configuration: config,

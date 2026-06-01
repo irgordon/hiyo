@@ -38,7 +38,7 @@ struct ConversationRow: View {
                 
                 Image(systemName: iconName)
                     .font(.system(size: 14))
-                    .foregroundStyle(isSelected ? .accentColor : .secondary)
+                    .foregroundStyle(isSelected ? Color.accentColor : .secondary)
             }
             
             // Content
