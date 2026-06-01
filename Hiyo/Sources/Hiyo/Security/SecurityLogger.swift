@@ -59,6 +59,8 @@ enum SecurityLogger {
         case integrityCheckFailed = "INTEGRITY_CHECK_FAILED"
         case integrityViolation = "INTEGRITY_VIOLATION"
         case suspiciousEnvironment = "SUSPICIOUS_ENVIRONMENT"
+        case configurationError = "CONFIGURATION_ERROR"
+        case promptTruncated = "PROMPT_TRUNCATED"
         
         // Sandbox
         case sandboxEscapeAttempt = "SANDBOX_ESCAPE_ATTEMPT"

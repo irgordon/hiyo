@@ -8,41 +8,6 @@
 import Foundation
 
 /// Secure notification system using only local NotificationCenter
-enum SecureNotification {
-    
-    // MARK: - Posting
-    
-    static func post(name: Notification.Name, object: Any? = nil, userInfo: [AnyHashable: Any]? = nil) {
-        NotificationCenter.default.post(
-            name: name,
-            object: object,
-            userInfo: userInfo
-        )
-    }
-    
-    // MARK: - Observation
-    
-    @discardableResult
-    static func observe(
-        name: Notification.Name,
-        object: Any? = nil,
-        queue: OperationQueue = .main,
-        using: @escaping (Notification) -> Void
-    ) -> NSObjectProtocol {
-        NotificationCenter.default.addObserver(
-            forName: name,
-            object: object,
-            queue: queue,
-            using: using
-        )
-    }
-    
-    // MARK: - Removal
-    
-    static func remove(observer: NSObjectProtocol) {
-        NotificationCenter.default.removeObserver(observer)
-    }
-}
 
 // MARK: - Notification Names
 

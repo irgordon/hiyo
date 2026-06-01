@@ -11,9 +11,6 @@ import MLX
 
 // MARK: - UserDefaults Keys
 
-enum DefaultsKey {
-    static let selectedModel = "selectedModel"
-}
 
 // MARK: - HiyoApp
 

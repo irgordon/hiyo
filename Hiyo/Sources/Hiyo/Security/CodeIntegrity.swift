@@ -18,7 +18,7 @@ enum CodeIntegrity {
         #if os(macOS)
         var code: SecCode?
         let status = SecCodeCopySelf(
-            SecCSFlags(rawValue: kSecCSDefaultFlags),
+            SecCSFlags(rawValue: 0),
             &code
         )
         
@@ -99,7 +99,6 @@ enum CodeIntegrity {
     }
 }
 
-// MARK: - Security Logger
 
 enum SecurityLogger {
     private static let logger = Logger(subsystem: "ai.hiyo.mac", category: "security")

@@ -153,7 +153,7 @@ final class MLXProvider {
         return AsyncStream { continuation in
             Task {
                 do {
-                    let stream = try await container.perform { [weak self] _, model, tokenizer in
+                    let stream = try await container.perform { [weak self] model, tokenizer in
                         
                         let prompt = LLMGenerator.formatPrompt(messages: messages, tokenizer: tokenizer)
                         let inputIds = tokenizer.encode(text: prompt)
