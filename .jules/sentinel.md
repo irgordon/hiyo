@@ -17,3 +17,8 @@
 **Vulnerability:** In `SecureMemory.swift`, the `destroy()` method used `guard var data = value` to safely unwrap the optional. This triggered Swift's Copy-On-Write (COW) semantics when the `data` buffer was mutated via `withUnsafeMutableBytes`, causing the zeroing operation to run on a copy while the original buffer containing sensitive data was left intact in memory.
 **Learning:** Assigning a Swift value type (like `Data`) to a local variable and then mutating it can trigger COW when the underlying storage is shared or not uniquely referenced. In this case, both the stored property and the local copy referenced the same storage, so mutating the local variable caused the wipe to occur on a copied buffer instead of the original allocation.
 **Prevention:** When securely wiping memory, avoid mutating a separate local copy of a COW-backed value while its storage may still be shared. Instead, mutate the original optional property directly (for example, `value?.withUnsafeMutableBytes { ... }`) so the intended in-place buffer is zeroed.
+
+## 2024-05-24 - Unchecked Cryptographic API Return Value
+**Vulnerability:** `SecRandomCopyBytes` result was ignored during encryption key generation. If it fails, the key defaults to an easily predictable all-zero sequence, undermining persistence encryption.
+**Learning:** Discarding return values from OS-level cryptographic APIs can lead to silent, catastrophic security failures instead of application crashes.
+**Prevention:** Always check the `OSStatus` result of system security APIs against `errSecSuccess` and explicitly throw domain errors on failure.
