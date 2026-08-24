@@ -17,3 +17,8 @@
 **Vulnerability:** In `SecureMemory.swift`, the `destroy()` method used `guard var data = value` to safely unwrap the optional. This triggered Swift's Copy-On-Write (COW) semantics when the `data` buffer was mutated via `withUnsafeMutableBytes`, causing the zeroing operation to run on a copy while the original buffer containing sensitive data was left intact in memory.
 **Learning:** Assigning a Swift value type (like `Data`) to a local variable and then mutating it can trigger COW when the underlying storage is shared or not uniquely referenced. In this case, both the stored property and the local copy referenced the same storage, so mutating the local variable caused the wipe to occur on a copied buffer instead of the original allocation.
 **Prevention:** When securely wiping memory, avoid mutating a separate local copy of a COW-backed value while its storage may still be shared. Instead, mutate the original optional property directly (for example, `value?.withUnsafeMutableBytes { ... }`) so the intended in-place buffer is zeroed.
+
+## 2026-08-24 - Useless Symlink Validation
+**Vulnerability:** Calling `resolvingSymlinksInPath()` before checking for `isSymbolicLinkKey` renders the symlink check useless, as the resolved path will never contain symlinks. Furthermore, comparing a resolved path to an unresolved base directory can lead to validation failures or infinite loops.
+**Learning:** `resolvingSymlinksInPath()` removes all symlinks from the URL, so checking the resulting URL for the `isSymbolicLinkKey` attribute will always return false.
+**Prevention:** Always check for symlinks on the unresolved URL path components before resolving, and verify the resolved path remains within the intended resolved base directory.
