@@ -45,10 +45,8 @@ enum SecureMLX {
             attributes: [.posixPermissions: 0o700]
         )
 
-        // Resolve and verify no symlinks in the path chain
-        let resolved = cache.resolvingSymlinksInPath()
-
-        var currentURL = resolved
+        // Check the unresolved path components for symlinks
+        var currentURL = cache
         // Walk up until we reach the base cache directory or root
         while currentURL.path != baseCache.path && currentURL.path != "/" {
             let resourceValues = try currentURL.resourceValues(forKeys: [.isSymbolicLinkKey])
@@ -60,6 +58,20 @@ enum SecureMLX {
                 throw MLXSecurityError.symbolicLinkInPath
             }
             currentURL.deleteLastPathComponent()
+        }
+
+        let resolvedBase = baseCache.resolvingSymlinksInPath()
+        let resolved = cache.resolvingSymlinksInPath()
+
+        // Verify it remains contained within the intended base directory
+        let pathString = resolved.path
+        let prefix = resolvedBase.path
+        guard pathString == prefix || pathString.hasPrefix(prefix + "/") else {
+            SecurityLogger.log(
+                .sandboxEscapeAttempt,
+                details: "MLX cache path escapes base directory"
+            )
+            throw MLXSecurityError.symbolicLinkInPath
         }
 
         return resolved
