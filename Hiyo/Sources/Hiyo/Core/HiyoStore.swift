@@ -9,6 +9,7 @@ import SwiftData
 import Foundation
 import CryptoKit
 import Observation
+import Security
 
 @MainActor
 @Observable
@@ -379,8 +380,11 @@ final class HiyoStore {
         
         // Generate new key
         var keyData = Data(count: 32)
-        _ = keyData.withUnsafeMutableBytes {
+        let status = keyData.withUnsafeMutableBytes {
             SecRandomCopyBytes(kSecRandomDefault, 32, $0.baseAddress!)
+        }
+        guard status == errSecSuccess else {
+            throw SecurityError.encryptionFailed
         }
         
         let key = SymmetricKey(data: keyData)
