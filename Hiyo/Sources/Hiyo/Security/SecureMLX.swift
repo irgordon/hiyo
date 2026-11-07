@@ -36,23 +36,15 @@ enum SecureMLX {
             throw MLXSecurityError.cacheDirectoryUnavailable
         }
 
+        let resolvedBaseCache = baseCache.resolvingSymlinksInPath()
+
         let cache = baseCache.appendingPathComponent(SecureMLXPolicy.cacheSubdirectory, isDirectory: true)
 
-        // Create with secure permissions
-        try fm.createDirectory(
-            at: cache,
-            withIntermediateDirectories: true,
-            attributes: [.posixPermissions: 0o700]
-        )
-
-        // Resolve and verify no symlinks in the path chain
-        let resolved = cache.resolvingSymlinksInPath()
-
-        var currentURL = resolved
-        // Walk up until we reach the base cache directory or root
+        // Walk up the unresolved path until we reach the base cache directory or root
+        var currentURL = cache
         while currentURL.path != baseCache.path && currentURL.path != "/" {
-            let resourceValues = try currentURL.resourceValues(forKeys: [.isSymbolicLinkKey])
-            if resourceValues.isSymbolicLink == true {
+            if let resourceValues = try? currentURL.resourceValues(forKeys: [.isSymbolicLinkKey]),
+               resourceValues.isSymbolicLink == true {
                 SecurityLogger.log(
                     .sandboxEscapeAttempt,
                     details: "Symlink detected in MLX cache path"
@@ -60,6 +52,21 @@ enum SecureMLX {
                 throw MLXSecurityError.symbolicLinkInPath
             }
             currentURL.deleteLastPathComponent()
+        }
+
+        // Create with secure permissions after validation
+        try fm.createDirectory(
+            at: cache,
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
+
+        let resolved = cache.resolvingSymlinksInPath()
+
+        let resolvedPath = resolved.path
+        let basePath = resolvedBaseCache.path
+        guard resolvedPath == basePath || resolvedPath.hasPrefix(basePath + "/") else {
+            throw MLXSecurityError.symbolicLinkInPath
         }
 
         return resolved
