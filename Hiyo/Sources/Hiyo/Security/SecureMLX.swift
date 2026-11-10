@@ -38,6 +38,22 @@ enum SecureMLX {
 
         let cache = baseCache.appendingPathComponent(SecureMLXPolicy.cacheSubdirectory, isDirectory: true)
 
+        // Verify no symlinks in the unresolved path chain before creation
+        var currentURL = cache
+        // Walk up until we reach the base cache directory or root
+        while currentURL.path != baseCache.path && currentURL.path != "/" {
+            if let resourceValues = try? currentURL.resourceValues(forKeys: [.isSymbolicLinkKey]) {
+                if resourceValues.isSymbolicLink == true {
+                    SecurityLogger.log(
+                        .sandboxEscapeAttempt,
+                        details: "Symlink detected in MLX cache path"
+                    )
+                    throw MLXSecurityError.symbolicLinkInPath
+                }
+            }
+            currentURL.deleteLastPathComponent()
+        }
+
         // Create with secure permissions
         try fm.createDirectory(
             at: cache,
@@ -45,21 +61,19 @@ enum SecureMLX {
             attributes: [.posixPermissions: 0o700]
         )
 
-        // Resolve and verify no symlinks in the path chain
         let resolved = cache.resolvingSymlinksInPath()
+        let resolvedBase = baseCache.resolvingSymlinksInPath()
 
-        var currentURL = resolved
-        // Walk up until we reach the base cache directory or root
-        while currentURL.path != baseCache.path && currentURL.path != "/" {
-            let resourceValues = try currentURL.resourceValues(forKeys: [.isSymbolicLinkKey])
-            if resourceValues.isSymbolicLink == true {
-                SecurityLogger.log(
-                    .sandboxEscapeAttempt,
-                    details: "Symlink detected in MLX cache path"
-                )
-                throw MLXSecurityError.symbolicLinkInPath
-            }
-            currentURL.deleteLastPathComponent()
+        let resolvedPath = resolved.path
+        let basePath = resolvedBase.path
+
+        // Verify the resolved path remains contained within the intended base directory
+        if resolvedPath != basePath && !resolvedPath.hasPrefix(basePath + "/") {
+            SecurityLogger.log(
+                .sandboxEscapeAttempt,
+                details: "Cache directory escaped base directory bounds"
+            )
+            throw MLXSecurityError.symbolicLinkInPath
         }
 
         return resolved
