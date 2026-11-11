@@ -38,21 +38,11 @@ enum SecureMLX {
 
         let cache = baseCache.appendingPathComponent(SecureMLXPolicy.cacheSubdirectory, isDirectory: true)
 
-        // Create with secure permissions
-        try fm.createDirectory(
-            at: cache,
-            withIntermediateDirectories: true,
-            attributes: [.posixPermissions: 0o700]
-        )
-
-        // Resolve and verify no symlinks in the path chain
-        let resolved = cache.resolvingSymlinksInPath()
-
-        var currentURL = resolved
-        // Walk up until we reach the base cache directory or root
+        // Verify no symlinks in the unresolved path chain
+        var currentURL = cache
         while currentURL.path != baseCache.path && currentURL.path != "/" {
-            let resourceValues = try currentURL.resourceValues(forKeys: [.isSymbolicLinkKey])
-            if resourceValues.isSymbolicLink == true {
+            if let resourceValues = try? currentURL.resourceValues(forKeys: [.isSymbolicLinkKey]),
+               resourceValues.isSymbolicLink == true {
                 SecurityLogger.log(
                     .sandboxEscapeAttempt,
                     details: "Symlink detected in MLX cache path"
@@ -62,7 +52,21 @@ enum SecureMLX {
             currentURL.deleteLastPathComponent()
         }
 
-        return resolved
+        let resolvedBaseCache = baseCache.resolvingSymlinksInPath()
+        let resolvedCache = cache.resolvingSymlinksInPath()
+
+        guard resolvedCache.path == resolvedBaseCache.path || resolvedCache.path.hasPrefix(resolvedBaseCache.path + "/") else {
+            throw MLXSecurityError.symbolicLinkInPath
+        }
+
+        // Create with secure permissions
+        try fm.createDirectory(
+            at: cache,
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
+
+        return resolvedCache
     }
 
     /// Validates downloaded model weights
